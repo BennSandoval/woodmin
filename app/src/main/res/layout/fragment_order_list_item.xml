@@ -76,6 +76,7 @@
                 android:layout_weight="5"
                 android:textSize="14sp"
                 android:textColor="@color/primary"
+                android:textStyle="bold"
                 android:layout_gravity="center_vertical"
                 android:gravity="right">
             </TextView>
