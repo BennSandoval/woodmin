@@ -68,6 +68,11 @@ public class LoginActivity extends ActionBarActivity {
             mUserView = (EditText) findViewById(R.id.user);
             mPasswordView = (EditText) findViewById(R.id.password);
 
+            //Test instance
+            mServerView.setText("https://www.bennsandoval.com");
+            mUserView.setText("ck_a022f02011f40f25015d281820749b40");
+            mPasswordView.setText("cs_faa80d014232589e82328dc67afe8049");
+
             mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                 @Override
                 public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -198,6 +203,10 @@ public class LoginActivity extends ActionBarActivity {
         client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
         client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
         client.setCache(null);
+        if(Utility.getSSLSocketFactory() != null){
+            client.setSslSocketFactory(Utility.getSSLSocketFactory());
+            client.setHostnameVerifier(Utility.getHostnameVerifier());
+        }
 
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint(server+"/wc-api/v2")

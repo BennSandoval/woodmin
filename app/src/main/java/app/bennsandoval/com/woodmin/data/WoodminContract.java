@@ -207,9 +207,11 @@ public class WoodminContract {
 
         public static final String COLUMN_SHIPPING_FIRST_NAME = "shipping_first_name";
         public static final String COLUMN_SHIPPING_LAST_NAME = "shipping_last_name";
+        public static final String COLUMN_SHIPPING_PHONE = "shipping_phone";
 
         public static final String COLUMN_BILLING_FIRST_NAME = "billing_first_name";
         public static final String COLUMN_BILLING_LAST_NAME = "billing_last_name";
+        public static final String COLUMN_BILLING_PHONE = "billing_phone";
 
         public static final String COLUMN_JSON = "json";
 

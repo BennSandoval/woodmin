@@ -150,6 +150,9 @@
         </service>
 
 
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="6a4c51f0ada31bedf6978d3325cbe95aa4fe544d" />
     </application>
 
 </manifest>

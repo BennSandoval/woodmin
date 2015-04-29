@@ -242,7 +242,7 @@ public class WoodminProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
-        getContext().getContentResolver().notifyChange(uri, null);
+        getContext().getContentResolver().notifyChange(uri, null, false);
         return returnUri;
     }
 
@@ -299,7 +299,7 @@ public class WoodminProvider extends ContentProvider {
 
         // Because a null deletes all rows
         if (selection == null || rowsDeleted != 0) {
-            getContext().getContentResolver().notifyChange(uri, null);
+            getContext().getContentResolver().notifyChange(uri, null, false);
         }
         return rowsDeleted;
 
@@ -356,7 +356,7 @@ public class WoodminProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
         if (rowsUpdated != 0) {
-            getContext().getContentResolver().notifyChange(uri, null);
+            getContext().getContentResolver().notifyChange(uri, null, false);
         }
         return rowsUpdated;
     }

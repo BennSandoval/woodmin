@@ -36,7 +36,7 @@ public class DrawerAdapter extends ArrayAdapter<DrawerOption> {
         if(values[position].getCount() > -1){
             countView.setText(String.valueOf(values[position].getCount()));
         }
-        //imageView.setImageResource(values[position].getIcon());
+        imageView.setImageResource(values[position].getIcon());
 
         return rowView;
     }

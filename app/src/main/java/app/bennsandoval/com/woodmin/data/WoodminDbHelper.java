@@ -126,8 +126,10 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
                 WoodminContract.CostumerEntry.COLUMN_LAST_NAME + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_SHIPPING_FIRST_NAME + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " TEXT, " +
+                WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_BILLING_FIRST_NAME + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_BILLING_LAST_NAME + " TEXT, " +
+                WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_USERNAME + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_LAST_ORDER_ID + " TEXT, " +
                 WoodminContract.CostumerEntry.COLUMN_JSON + " TEXT );";

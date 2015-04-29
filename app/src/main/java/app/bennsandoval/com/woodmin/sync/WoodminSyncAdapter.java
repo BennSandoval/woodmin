@@ -13,6 +13,8 @@ import android.content.SyncResult;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 
@@ -47,19 +49,20 @@ import retrofit.converter.GsonConverter;
 
 public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    public final String LOG_TAG = WoodminSyncAdapter.class.getSimpleName();
+    public static final String LOG_TAG = WoodminSyncAdapter.class.getSimpleName();
     // 60 seconds (1 minute) * 180 = 3 hours
     public static final int SYNC_INTERVAL = 60 * 180;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
 
-    private int sizePage = 10;
-
+    private int sizePageOrders = 50;
     private int sizeOrders = 0;
     private int pageOrder = 1;
 
+    private int sizePageProduct = 100;
     private int sizeProducts = 0;
     private int pageProduct= 1;
 
+    private int sizePageCustomer = 500;
     private int sizeCustomers = 0;
     private int pageCustomer= 1;
 
@@ -73,7 +76,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle bundle, String s, ContentProviderClient contentProviderClient, SyncResult syncResult) {
         Log.d(LOG_TAG, "Starting sync");
 
-        Context context = getContext();
+        final Context context = getContext();
         String user = Utility.getPreferredUser(context);
 
         AccountManager accountManager = (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
@@ -94,6 +97,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
         client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
         client.setCache(null);
+        if(Utility.getSSLSocketFactory() != null){
+            client.setSslSocketFactory(Utility.getSSLSocketFactory());
+            client.setHostnameVerifier(Utility.getHostnameVerifier());
+        }
 
         String server = Utility.getPreferredServer(context);
         RestAdapter restAdapter = new RestAdapter.Builder()
@@ -103,19 +110,40 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 .setRequestInterceptor(requestInterceptor)
                 .build();
 
-        Woocommerce woocommerceApi = restAdapter.create(Woocommerce.class);
+        final Woocommerce woocommerceApi = restAdapter.create(Woocommerce.class);
 
         //Shop
-        synchronizeShop(woocommerceApi,context);
-
-        //Orders
-        synchronizeOrders(woocommerceApi,context);
+        Handler handler = new Handler(Looper.getMainLooper());
+        Runnable runnableShop = new Runnable() {
+            public void run() {
+                synchronizeShop(woocommerceApi,context);
+            }
+        };
+        handler.post(runnableShop);
 
         //Products
-        synchronizeProducts(woocommerceApi,context);
+        Runnable runnableProducts = new Runnable() {
+            public void run() {
+                synchronizeProducts(woocommerceApi,context);
+            }
+        };
+        handler.post(runnableProducts);
+
+        //Orders
+        Runnable runnableOrders = new Runnable() {
+            public void run() {
+                synchronizeOrders(woocommerceApi,context);
+            }
+        };
+        handler.post(runnableOrders);
 
         //Customers
-        synchronizeCustomers(woocommerceApi,context);
+        Runnable runnableCustomers = new Runnable() {
+            public void run() {
+                synchronizeCustomers(woocommerceApi,context);
+            }
+        };
+        handler.post(runnableCustomers);
 
         Long lastSyncKey =  Utility.getPreferredLastSync(getContext());
         Log.v(LOG_TAG, "Last sync" + lastSyncKey);
@@ -135,22 +163,24 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 } catch (NumberFormatException exception) {
                     Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
                 }
+                Log.v(LOG_TAG, "Total Customers " + sizeCustomers);
 
                 int costumerRowsDeleted = context.getContentResolver().delete(WoodminContract.CostumerEntry.CONTENT_URI,null,null);
                 Log.v(LOG_TAG,costumerRowsDeleted + " old costumer deleted");
                 Log.v(LOG_TAG,sizeCustomers+" new costumer");
 
-                while (sizeCustomers > 0) {
+                while (sizeCustomers > 0)
+                {
                     Log.v(LOG_TAG, "Read Customers " + sizeCustomers + " Page " + pageCustomer);
 
                     HashMap<String, String> options = new HashMap<>();
-                    options.put("filter[limit]", String.valueOf(sizePage));
+                    options.put("filter[limit]", String.valueOf(sizePageCustomer));
                     options.put("page", String.valueOf(pageCustomer));
 
                     woocommerceApi.getCustomers(options, new Callback<Customers>() {
                         @Override
                         public void success(Customers customers, Response response) {
-                            Log.v(LOG_TAG, "Sucess page");
+                            Log.v(LOG_TAG,"Sucess page Customer " + pageCustomer);
 
                             for (Customer customer : customers.getCustomers()) {
 
@@ -165,10 +195,16 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                                 if(customer.getBillingAddress() != null){
                                     customerValues.put(WoodminContract.CostumerEntry.COLUMN_BILLING_FIRST_NAME, customer.getBillingAddress().getFirstName());
                                     customerValues.put(WoodminContract.CostumerEntry.COLUMN_BILLING_LAST_NAME, customer.getBillingAddress().getLastName());
+                                    if(customer.getBillingAddress().getPhone()!= null){
+                                        customerValues.put(WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE, customer.getBillingAddress().getPhone());
+                                    }
                                 }
                                 if(customer.getShippingAddress() != null){
                                     customerValues.put(WoodminContract.CostumerEntry.COLUMN_SHIPPING_FIRST_NAME, customer.getShippingAddress().getFirstName());
                                     customerValues.put(WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME, customer.getShippingAddress().getLastName());
+                                    if(customer.getShippingAddress().getPhone()!= null){
+                                        customerValues.put(WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE, customer.getShippingAddress().getPhone());
+                                    }
                                 }
                                 customerValues.put(WoodminContract.CostumerEntry.COLUMN_JSON,gson.toJson(customer));
 
@@ -199,10 +235,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         }
                     });
 
-                    sizeCustomers = sizeCustomers - sizePage;
+                    sizeCustomers = sizeCustomers - sizePageCustomer;
                     pageCustomer++;
 
                 }
+                pageCustomer = 1;
 
             }
 
@@ -239,22 +276,24 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 } catch (NumberFormatException exception) {
                     Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
                 }
+                Log.v(LOG_TAG, "Total Products " + sizeProducts);
 
                 int productRowsDeleted = context.getContentResolver().delete(WoodminContract.ProductEntry.CONTENT_URI,null,null);
                 Log.v(LOG_TAG,"Product " + productRowsDeleted + " old deleted");
                 Log.v(LOG_TAG,"Product " + sizeProducts+" new");
 
-                while (sizeProducts > 0) {
+                while (sizeProducts > 0)
+                {
                     Log.v(LOG_TAG, "Read Products " + sizeProducts + " Page " + pageProduct);
 
                     HashMap<String, String> options = new HashMap<>();
-                    options.put("filter[limit]", String.valueOf(sizePage));
+                    options.put("filter[limit]", String.valueOf(sizePageProduct));
                     options.put("page", String.valueOf(pageProduct));
 
                     woocommerceApi.getProducts(options, new Callback<Products>() {
                         @Override
                         public void success(Products products, Response response) {
-                            Log.v(LOG_TAG, "Sucess page");
+                            Log.v(LOG_TAG,"Sucess page Product " + pageProduct);
 
                             for (Product product : products.getProducts()) {
 
@@ -293,10 +332,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         }
                     });
 
-                    sizeProducts = sizeProducts - sizePage;
+                    sizeProducts = sizeProducts - sizePageProduct;
                     pageProduct++;
 
                 }
+                pageProduct = 1;
 
             }
 
@@ -333,6 +373,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 } catch (NumberFormatException exception){
                     Log.e(LOG_TAG,"NumberFormatException "+exception.getMessage());
                 }
+                Log.v(LOG_TAG, "Total Orders " + sizeOrders);
 
                 int ordersRowsDeleted = context.getContentResolver().delete(WoodminContract.OrdersEntry.CONTENT_URI,null,null);
                 Log.v(LOG_TAG,"Orders " + ordersRowsDeleted + " old deleted");
@@ -343,14 +384,14 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                     HashMap<String, String> options = new HashMap<>();
                     options.put("status","pending,processing,on-hold,completed,cancelled,refunded,failed");
-                    options.put("filter[limit]",String.valueOf(sizePage));
+                    options.put("filter[limit]",String.valueOf(sizePageOrders));
                     options.put("page",String.valueOf(pageOrder));
                     options.put("filter[q]","");
 
                     woocommerceApi.getOrders(options,new Callback<Orders>() {
                         @Override
                         public void success(Orders orders, Response response) {
-                            Log.v(LOG_TAG,"Sucess page");
+                            Log.v(LOG_TAG,"Sucess page Order " + pageOrder);
 
                             for(Order order:orders.getOrders()){
 
@@ -472,10 +513,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         }
                     });
 
-                    sizeOrders = sizeOrders - sizePage;
+                    sizeOrders = sizeOrders - sizePageOrders;
                     pageOrder++;
 
                 }
+                pageOrder = 1;
 
             }
 
@@ -569,6 +611,27 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     }
 
+    public static void removeAccount(Context context){
+        String user = Utility.getPreferredUser(context);
+        AccountManager accountManager = (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
+        Account account = new Account("Woodmin", context.getString(R.string.sync_account_type));
+        if ( accountManager.getPassword(account) != null  ) {
+            String secret = Utility.getPreferredSecret(context);
+            accountManager.removeAccount(account,null,null);
+        }
+    }
+
+    public static void disablePeriodSync(Context context){
+        Log.e(LOG_TAG, "disablePeriodSync");
+
+        Account account = getSyncAccount(context);
+        String authority = context.getString(R.string.content_authority);
+        ContentResolver.cancelSync(account, authority);
+
+        AccountManager accountManager = (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
+        accountManager.removeAccount(account, null, null);
+    }
+
     private static void onAccountCreated(Account newAccount, Context context) {
         WoodminSyncAdapter.configurePeriodicSync(context, SYNC_INTERVAL, SYNC_FLEXTIME);
         ContentResolver.setSyncAutomatically(newAccount, context.getString(R.string.content_authority), true);
@@ -580,10 +643,13 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         String authority = context.getString(R.string.content_authority);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             // we can enable inexact timers in our periodic sync
-            SyncRequest request = new SyncRequest.Builder().
-                    syncPeriodic(syncInterval, flexTime).
-                    setSyncAdapter(account, authority).build();
+            SyncRequest request = new SyncRequest.Builder()
+                    .syncPeriodic(syncInterval, flexTime)
+                    .setSyncAdapter(account, authority)
+                    .setExtras(new Bundle())
+                    .build();
             ContentResolver.requestSync(request);
+            ContentResolver.addPeriodicSync(account, authority, new Bundle(), syncInterval);
         } else {
             ContentResolver.addPeriodicSync(account, authority, new Bundle(), syncInterval);
         }

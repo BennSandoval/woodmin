@@ -16,11 +16,16 @@ import com.google.android.gms.actions.SearchIntents;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.fragments.CustomersFragment;
 import app.bennsandoval.com.woodmin.fragments.OrdersFragment;
 import app.bennsandoval.com.woodmin.fragments.ProductsFragment;
+import app.bennsandoval.com.woodmin.fragments.ResumeFragment;
 import app.bennsandoval.com.woodmin.interfaces.NavigationDrawerCallbacks;
 import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.services.HeadInfoService;
+import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class MainActivity extends ActionBarActivity implements NavigationDrawerCallbacks {
 
@@ -36,6 +41,14 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
         mTitle = getTitle();
         mNavigationDrawerFragment.setUp(R.id.navigation_drawer, (DrawerLayout) findViewById(R.id.drawer_layout));
 
+        WoodminSyncAdapter.initializeSyncAdapter(getApplicationContext());
+        //WoodminSyncAdapter.syncImmediately(getApplicationContext());
+
+        //Search
+        //Intent intentHeader= new Intent(getApplicationContext(), HeadInfoService.class);
+        //intentHeader.putExtra("search","3339024328");
+        //startService(intentHeader);
+
         processIntent(getIntent());
     }
 
@@ -46,7 +59,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
         switch (position) {
             case 0:
                 fragmentManager.beginTransaction()
-                        .replace(R.id.container, OrdersFragment.newInstance(position),"section")
+                        .replace(R.id.container, ResumeFragment.newInstance(position),"section")
                         .commit();
                 /*
                 mTitle = getString(R.string.app_name);
@@ -76,6 +89,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
                 break;
             case 4:
                 mTitle = getString(R.string.title_section5);
+
                 if (allFragments != null && allFragments.size() > 0) {
                     for (Fragment frag : allFragments) {
                         if (frag!= null && frag.getTag()!= null && frag.getTag().equals("section")){
@@ -83,6 +97,22 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
                         }
                     }
                 }
+
+                //Clear database
+                getApplicationContext().getContentResolver().delete(WoodminContract.CostumerEntry.CONTENT_URI, null, null);
+                getApplicationContext().getContentResolver().delete(WoodminContract.ProductEntry.CONTENT_URI, null, null);
+                getApplicationContext().getContentResolver().delete(WoodminContract.ShopEntry.CONTENT_URI, null, null);
+                getApplicationContext().getContentResolver().delete(WoodminContract.OrdersEntry.CONTENT_URI, null, null);
+
+                //Remove Sync
+                WoodminSyncAdapter.disablePeriodSync(getApplicationContext());
+                WoodminSyncAdapter.removeAccount(getApplicationContext());
+
+                Utility.setPreferredServer(getApplicationContext(),null);
+                Intent main = new Intent(getApplicationContext(), LoginActivity.class);
+                startActivity(main);
+                finish();
+
                 break;
         }
     }
@@ -100,6 +130,10 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+        switch (id){
+            default:
+                break;
+        }
         return super.onOptionsItemSelected(item);
     }
 

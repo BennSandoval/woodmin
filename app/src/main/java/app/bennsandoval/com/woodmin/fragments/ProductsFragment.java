@@ -13,6 +13,9 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,35 +24,32 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ListView;
 
 import com.google.android.gms.actions.SearchIntents;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
 import app.bennsandoval.com.woodmin.adapters.ProductAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 
 public class ProductsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
     private final String LOG_TAG = ProductsFragment.class.getSimpleName();
 
     private static final String ARG_SECTION_NUMBER = "section_number";
-    private Gson mGson = new GsonBuilder().create();
-    private ArrayList<Product> mProducts = new ArrayList();
     private ProductAdapter mAdapter;
+
+    private SwipeRefreshLayout mSwipeLayout;
+    private RecyclerView mRecyclerView;
 
     private static final int PRODUCT_LOADER = 200;
     private static final String[] PRODUCT_PROJECTION = {
+            WoodminContract.ProductEntry._ID,
+            WoodminContract.ProductEntry.COLUMN_ID,
             WoodminContract.ProductEntry.COLUMN_JSON,
     };
-    private int COLUMN_PRODUCT_COLUMN_COLUMN_JSON = 0;
 
     private SearchView mSearchView;
     private String mQuery;
@@ -76,11 +76,43 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_products, container, false);
 
-        mAdapter = new ProductAdapter(getActivity().getApplicationContext(),R.layout.fragment_product_list_item,mProducts);
-        ListView list = (ListView)rootView.findViewById(R.id.list);
-        list.setAdapter(mAdapter);
+        View.OnClickListener onClickListener = new View.OnClickListener(){
+            @Override
+            public void onClick(final View view) {
+                int position = mRecyclerView.getChildPosition(view);
+                mAdapter.getCursor().moveToPosition(position);
+                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.ProductEntry.COLUMN_ID));
+/*
+                Intent orderIntent = new Intent(getActivity(), ProductDetail.class);
+                orderIntent.putExtra("product", idSelected);
+                startActivity(orderIntent);
+*/
+            }
+        };
+
+        mAdapter = new ProductAdapter(getActivity().getApplicationContext(), R.layout.fragment_product_list_item, null, onClickListener);
+        mRecyclerView = (RecyclerView)rootView.findViewById(R.id.list_products);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        mRecyclerView.setLayoutManager(layoutManager);
+
+        mRecyclerView.setAdapter(mAdapter);
 
         getActivity().getSupportLoaderManager().initLoader(PRODUCT_LOADER, null, this);
+
+        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
+        mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                WoodminSyncAdapter.syncImmediately(getActivity());
+            }
+        });
+
+        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
 
         return rootView;
     }
@@ -135,7 +167,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.ProductEntry._ID + " ASC";
+        String sortOrder = WoodminContract.ProductEntry.COLUMN_STOCK + " ASC";
         CursorLoader cursorLoader;
         Uri productsUri = WoodminContract.ProductEntry.CONTENT_URI;
         switch (id) {
@@ -171,17 +203,10 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         switch (cursorLoader.getId()) {
             case PRODUCT_LOADER:
-                mProducts.clear();
-                if (cursor.moveToFirst()) {
-                    do {
-                        String json = cursor.getString(COLUMN_PRODUCT_COLUMN_COLUMN_JSON);
-                        if(json!=null){
-                            Product product= mGson.fromJson(json, Product.class);
-                            mProducts.add(product);
-                        }
-                    } while (cursor.moveToNext());
+                if(mSwipeLayout != null){
+                    mSwipeLayout.setRefreshing(false);
                 }
-                mAdapter.notifyDataSetChanged();
+                mAdapter.changeCursor(cursor);
                 break;
             default:
                 break;
@@ -193,7 +218,6 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
         Log.d(LOG_TAG, "onLoaderReset");
         switch (cursorLoader.getId()) {
             case PRODUCT_LOADER:
-                mProducts.clear();
                 mAdapter.notifyDataSetChanged();
                 break;
             default:

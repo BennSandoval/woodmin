@@ -8,11 +8,15 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,35 +25,39 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ListView;
 
 import com.google.android.gms.actions.SearchIntents;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
 import app.bennsandoval.com.woodmin.adapters.CustomerAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
+import app.bennsandoval.com.woodmin.interfaces.CustomerActions;
 import app.bennsandoval.com.woodmin.models.customers.Customer;
+import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 
-public class CustomersFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
+public class CustomersFragment extends Fragment implements
+        LoaderManager.LoaderCallbacks<Cursor>,
+        SearchView.OnQueryTextListener,
+        CustomerActions{
 
     private final String LOG_TAG = CustomersFragment.class.getSimpleName();
 
     private static final String ARG_SECTION_NUMBER = "section_number";
-    private Gson mGson = new GsonBuilder().create();
-    private ArrayList<Customer> mCustomers = new ArrayList();
+
     private CustomerAdapter mAdapter;
+
+    private SwipeRefreshLayout mSwipeLayout;
+    private RecyclerView mRecyclerView;
 
     private static final int CUSTOMER_LOADER = 300;
     private static final String[] CUSTOMER_PROJECTION = {
+            WoodminContract.CostumerEntry._ID,
+            WoodminContract.CostumerEntry.COLUMN_ID,
             WoodminContract.CostumerEntry.COLUMN_JSON,
     };
-    private int COLUMN_CUSTOMER_COLUMN_JSON = 0;
 
     private SearchView mSearchView;
     private String mQuery;
@@ -76,13 +84,51 @@ public class CustomersFragment extends Fragment implements LoaderManager.LoaderC
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_customers, container, false);
 
-        mAdapter = new CustomerAdapter(getActivity().getApplicationContext(),R.layout.fragment_customer_list_item,mCustomers);
-        ListView list = (ListView)rootView.findViewById(R.id.list);
-        list.setAdapter(mAdapter);
+        View.OnClickListener onClickListener = new View.OnClickListener(){
+            @Override
+            public void onClick(final View view) {
+                int position = mRecyclerView.getChildPosition(view);
+                mAdapter.getCursor().moveToPosition(position);
+                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.CostumerEntry.COLUMN_ID));
+/*
+                Intent orderIntent = new Intent(getActivity(), ProductDetail.class);
+                orderIntent.putExtra("product", idSelected);
+                startActivity(orderIntent);
+*/
+            }
+        };
+
+        mAdapter = new CustomerAdapter(getActivity().getApplicationContext(),R.layout.fragment_customer_list_item, null, onClickListener, this);
+        mRecyclerView = (RecyclerView)rootView.findViewById(R.id.list_custumer);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        mRecyclerView.setLayoutManager(layoutManager);
+
+        mRecyclerView.setAdapter(mAdapter);
 
         getActivity().getSupportLoaderManager().initLoader(CUSTOMER_LOADER, null, this);
 
+        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
+        mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                WoodminSyncAdapter.syncImmediately(getActivity());
+            }
+        });
+
+        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
+
         return rootView;
+    }
+
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
     }
 
     @Override
@@ -144,11 +190,22 @@ public class CustomersFragment extends Fragment implements LoaderManager.LoaderC
                     String query = WoodminContract.CostumerEntry.COLUMN_LAST_NAME + " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_EMAIL + " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_SHIPPING_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE+ " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_BILLING_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE + " LIKE ? OR  " +
                             WoodminContract.CostumerEntry.COLUMN_FIRST_NAME + " LIKE ?" ;
-                    String[] parameters = new String[]{ "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%" };
+                    String[] parameters = new String[]{ "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%" };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             costumersUri,
@@ -177,17 +234,10 @@ public class CustomersFragment extends Fragment implements LoaderManager.LoaderC
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         switch (cursorLoader.getId()) {
             case CUSTOMER_LOADER:
-                mCustomers.clear();
-                if (cursor.moveToFirst()) {
-                    do {
-                        String json = cursor.getString(COLUMN_CUSTOMER_COLUMN_JSON);
-                        if(json!=null){
-                            Customer customer= mGson.fromJson(json, Customer.class);
-                            mCustomers.add(customer);
-                        }
-                    } while (cursor.moveToNext());
+                if(mSwipeLayout != null){
+                    mSwipeLayout.setRefreshing(false);
                 }
-                mAdapter.notifyDataSetChanged();
+                mAdapter.changeCursor(cursor);
                 break;
             default:
                 break;
@@ -199,7 +249,6 @@ public class CustomersFragment extends Fragment implements LoaderManager.LoaderC
         Log.d(LOG_TAG, "onLoaderReset");
         switch (cursorLoader.getId()) {
             case CUSTOMER_LOADER:
-                mCustomers.clear();
                 mAdapter.notifyDataSetChanged();
                 break;
             default:
@@ -234,4 +283,21 @@ public class CustomersFragment extends Fragment implements LoaderManager.LoaderC
         getActivity().getSupportLoaderManager().getLoader(CUSTOMER_LOADER).forceLoad();
     }
 
+    @Override
+    public void sendEmail(Customer customer) {
+        if(customer.getEmail() != null){
+            Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto",customer.getEmail(), null));
+            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "");
+            startActivity(Intent.createChooser(emailIntent, "Woodmin"));
+        }
+    }
+
+    @Override
+    public void makeACall(Customer customer) {
+        if(customer.getBillingAddress() != null){
+            Intent callIntent = new Intent(Intent.ACTION_DIAL);
+            callIntent.setData(Uri.parse("tel:" + customer.getBillingAddress().getPhone()));
+            startActivity(callIntent);
+        }
+    }
 }

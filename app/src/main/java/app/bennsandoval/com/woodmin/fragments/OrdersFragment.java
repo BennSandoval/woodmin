@@ -13,6 +13,9 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,35 +24,33 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ListView;
 
 import com.google.android.gms.actions.SearchIntents;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
+import app.bennsandoval.com.woodmin.activities.OrderDetail;
 import app.bennsandoval.com.woodmin.adapters.OrderAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.orders.Order;
+import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 
 public class OrdersFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
     private final String LOG_TAG = OrdersFragment.class.getSimpleName();
 
     private static final String ARG_SECTION_NUMBER = "section_number";
-    private Gson mGson = new GsonBuilder().create();
-    private ArrayList<Order> mOrders = new ArrayList();
     private OrderAdapter mAdapter;
+
+    private SwipeRefreshLayout mSwipeLayout;
+    private RecyclerView mRecyclerView;
 
     private static final int ORDER_LOADER = 100;
     private static final String[] ORDER_PROJECTION = {
+            WoodminContract.OrdersEntry._ID,
+            WoodminContract.OrdersEntry.COLUMN_ID,
             WoodminContract.OrdersEntry.COLUMN_JSON,
     };
-    private int COLUMN_ORDER_COLUMN_COLUMN_JSON = 0;
 
     private SearchView mSearchView;
     private String mQuery;
@@ -76,11 +77,42 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_orders, container, false);
 
-        mAdapter = new OrderAdapter(getActivity().getApplicationContext(),R.layout.fragment_order_list_item,mOrders);
-        ListView list = (ListView)rootView.findViewById(R.id.list);
-        list.setAdapter(mAdapter);
+        View.OnClickListener onClickListener = new View.OnClickListener(){
+            @Override
+            public void onClick(final View view) {
+                int position = mRecyclerView.getChildPosition(view);
+                mAdapter.getCursor().moveToPosition(position);
+                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.OrdersEntry.COLUMN_ID));
+
+                Intent orderIntent = new Intent(getActivity(), OrderDetail.class);
+                orderIntent.putExtra("order", idSelected);
+                startActivity(orderIntent);
+            }
+        };
+
+        mAdapter = new OrderAdapter(getActivity().getApplicationContext(), R.layout.fragment_order_list_item, null, onClickListener);
+        mRecyclerView = (RecyclerView)rootView.findViewById(R.id.list_orders);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        mRecyclerView.setLayoutManager(layoutManager);
+
+        mRecyclerView.setAdapter(mAdapter);
 
         getActivity().getSupportLoaderManager().initLoader(ORDER_LOADER, null, this);
+
+        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
+        mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                WoodminSyncAdapter.syncImmediately(getActivity());
+            }
+        });
+
+        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
 
         return rootView;
     }
@@ -135,14 +167,23 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.OrdersEntry._ID + " ASC";
+        String sortOrder = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " DESC";
         CursorLoader cursorLoader;
         Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
         switch (id) {
             case ORDER_LOADER:
                 if(mQuery != null && mQuery.length()>0){
-                    String query = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " LIKE ? OR  " + WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " + WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ?" ;
-                    String[] parameters = new String[]{ "%"+mQuery+"%", "%"+mQuery+"%", "%"+mQuery+"%" };
+                    String query = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " LIKE ? OR  " +
+                            WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ?" ;
+                    String[] parameters = new String[]{ "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%",
+                            "%"+mQuery+"%" };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             ordersUri,
@@ -171,17 +212,10 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         switch (cursorLoader.getId()) {
             case ORDER_LOADER:
-                mOrders.clear();
-                if (cursor.moveToFirst()) {
-                    do {
-                        String json = cursor.getString(COLUMN_ORDER_COLUMN_COLUMN_JSON);
-                        if(json!=null){
-                            Order order= mGson.fromJson(json, Order.class);
-                            mOrders.add(order);
-                        }
-                    } while (cursor.moveToNext());
+                if(mSwipeLayout != null){
+                    mSwipeLayout.setRefreshing(false);
                 }
-                mAdapter.notifyDataSetChanged();
+                mAdapter.changeCursor(cursor);
                 break;
             default:
                 break;
@@ -193,7 +227,6 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
         Log.d(LOG_TAG, "onLoaderReset");
         switch (cursorLoader.getId()) {
             case ORDER_LOADER:
-                mOrders.clear();
                 mAdapter.notifyDataSetChanged();
                 break;
             default:

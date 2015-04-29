@@ -116,11 +116,11 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
         });
 
         mValues = new DrawerOption[]{
-                new DrawerOption(getString(R.string.title_section1),R.drawable.logo,0),
-                new DrawerOption(getString(R.string.title_section2),R.drawable.logo,0),
-                new DrawerOption(getString(R.string.title_section3),R.drawable.logo,0),
+                new DrawerOption(getString(R.string.title_section1),R.drawable.orders,0),
+                new DrawerOption(getString(R.string.title_section2),R.drawable.products,0),
+                new DrawerOption(getString(R.string.title_section3),R.drawable.customers,0),
                 //new DrawerOption(getString(R.string.title_section4),R.drawable.logo,0),
-                new DrawerOption(getString(R.string.title_section5),R.drawable.logo,-1)
+                new DrawerOption(getString(R.string.title_section5),R.drawable.logout,-1)
         };
         mAdapter = new DrawerAdapter(getActionBar().getThemedContext(),mValues);
         mDrawerListView.setAdapter(mAdapter);

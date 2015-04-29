@@ -24,7 +24,7 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="action_example">Example action</string>
-    <string name="action_settings">Settings action</string>
+    <string name="action_synchronize">Synchronize</string>
 
     <!--Login-->
     <string name="title_activity_login">Sign in</string>
@@ -40,9 +40,17 @@
     <string name="order_title_search">Search order</string>
     <string name="order_voice_search">order</string>
     <string name="customer_information">Customer Information</string>
-    <string name="order">Order</string>
-    <string name="guest">Guest</string>
+    <string name="order_payment">Payment</string>
+    <string name="order_billing">Billing</string>
+    <string name="order_shipping">Shipping</string>
+    <string name="order_shopping">Shopping Cart</string>
+    <string name="order_amount">Amount</string>
+    <string name="order_taxes">Taxes</string>
+    <string name="order_total">Total</string>
+    <string name="order">ORDER</string>
+    <string name="guest">GUEST</string>
     <string name="items">ITEMS</string>
+    <string name="call">CALL</string>
 
     <!--Product-->
     <string name="product_voice_search">product</string>
@@ -56,5 +64,7 @@
     <string name="customer_voice_search">customer</string>
     <string name="customer_title_search">Search customer</string>
     <string name="customer_spend">Total spend</string>
+    <string name="customer_call">MAKE A CALL</string>
+    <string name="customer_email">SEND EMAIL</string>
 
 </resources>

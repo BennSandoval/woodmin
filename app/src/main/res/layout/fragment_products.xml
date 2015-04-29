@@ -7,8 +7,8 @@
     android:background="@color/background_gray"
     tools:context="app.bennsandoval.com.woodmin.fragments.ProductsFragment">
 
-    <ListView
-        android:id="@+id/list"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/list_products"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:divider="@android:color/transparent"/>

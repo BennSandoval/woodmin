@@ -33,7 +33,7 @@ public interface Woocommerce {
                    Callback<Products> products);
 
     @GET("/customers/count")
-    void countCustomers(Callback<Count> productsCount);
+    void countCustomers(Callback<Count> customerCount);
 
     //?filter[limit]=10&page=0&filter[q]=
     @GET("/customers")
