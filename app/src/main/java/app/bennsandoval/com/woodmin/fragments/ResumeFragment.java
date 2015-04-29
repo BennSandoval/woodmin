@@ -189,7 +189,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                         if(json!=null){
                             Order order = mGson.fromJson(json, Order.class);
 
-                            if(date != null && !simpleDateFormat.format(order.getCreatedAt()).equals(date)){
+                            if(date != null && !simpleDateFormat.format(order.getCreatedAt()).equals(date) && isAdded()){
 
                                 DataResume resumeDay = new DataResume();
                                 resumeDay.setField1(date);
@@ -235,7 +235,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
 
                     do {
                         String json = cursor.getString(COLUMN_PRODUCT_COLUMN_COLUMN_JSON);
-                        if(json!=null){
+                        if(json!=null && isAdded()){
                             Product product = mGson.fromJson(json, Product.class);
 
                             DataResume resumeProduct = new DataResume();
