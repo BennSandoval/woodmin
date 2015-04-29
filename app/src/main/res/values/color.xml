@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary">#009688</color>
+    <color name="primary_dark">#008174</color>
     <color name="red">#F44336</color>
     <color name="transparent_red">#60F44336</color>
     <color name="orange">#FF5722</color>
