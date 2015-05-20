@@ -99,6 +99,23 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
 
         mRecyclerView.setAdapter(mAdapter);
 
+        mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrollStateChanged(RecyclerView view, int scrollState) {
+            }
+
+            @Override
+            public void onScrolled(RecyclerView view, int dx, int dy) {
+                boolean enable = false;
+                if (view != null && view.getChildCount() > 0) {
+                    boolean topOfFirstItemVisible = view.getChildAt(0).getTop() == 0;
+                    enable = topOfFirstItemVisible;
+                }
+                mSwipeLayout.setEnabled(enable);
+            }
+        });
+
         getActivity().getSupportLoaderManager().initLoader(PRODUCT_LOADER, null, this);
 
         mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);

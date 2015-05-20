@@ -99,6 +99,23 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
 
         mRecyclerView.setAdapter(mAdapter);
 
+        mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrollStateChanged(RecyclerView view, int scrollState) {
+            }
+
+            @Override
+            public void onScrolled(RecyclerView view, int dx, int dy) {
+                boolean enable = false;
+                if (view != null && view.getChildCount() > 0) {
+                    boolean topOfFirstItemVisible = view.getChildAt(0).getTop() == 0;
+                    enable = topOfFirstItemVisible;
+                }
+                mSwipeLayout.setEnabled(enable);
+            }
+        });
+
         getActivity().getSupportLoaderManager().initLoader(ORDER_LOADER, null, this);
 
         mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
