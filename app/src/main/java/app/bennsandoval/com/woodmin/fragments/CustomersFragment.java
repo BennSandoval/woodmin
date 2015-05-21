@@ -106,6 +106,20 @@ public class CustomersFragment extends Fragment implements
         mRecyclerView.setLayoutManager(layoutManager);
 
         mRecyclerView.setAdapter(mAdapter);
+        getActivity().getSupportLoaderManager().initLoader(CUSTOMER_LOADER, null, this);
+
+        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
+        mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                WoodminSyncAdapter.syncImmediately(getActivity());
+            }
+        });
+
+        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
 
         mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
 
@@ -123,21 +137,6 @@ public class CustomersFragment extends Fragment implements
                 mSwipeLayout.setEnabled(enable);
             }
         });
-
-        getActivity().getSupportLoaderManager().initLoader(CUSTOMER_LOADER, null, this);
-
-        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
-        mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                WoodminSyncAdapter.syncImmediately(getActivity());
-            }
-        });
-
-        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
-                android.R.color.holo_green_light,
-                android.R.color.holo_orange_light,
-                android.R.color.holo_red_light);
 
         return rootView;
     }
