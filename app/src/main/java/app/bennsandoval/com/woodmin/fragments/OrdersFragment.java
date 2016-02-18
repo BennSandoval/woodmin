@@ -109,10 +109,10 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
             }
         });
 
-        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
-                android.R.color.holo_green_light,
-                android.R.color.holo_orange_light,
-                android.R.color.holo_red_light);
+        mSwipeLayout.setColorSchemeResources(R.color.holo_blue_bright,
+                R.color.holo_green_light,
+                R.color.holo_orange_light,
+                R.color.holo_red_light);
 
         mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
 
@@ -184,7 +184,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " DESC";
+        String sortOrder = WoodminContract.OrdersEntry.COLUMN_ID + " DESC";
         CursorLoader cursorLoader;
         Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
         switch (id) {
@@ -209,12 +209,14 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                             parameters,
                             sortOrder);
                 } else {
+                    String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
+                    String[] parameters = new String[]{ String.valueOf("1") };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             ordersUri,
                             ORDER_PROJECTION,
-                            null,
-                            null,
+                            query,
+                            parameters,
                             sortOrder);
                 }
                 break;

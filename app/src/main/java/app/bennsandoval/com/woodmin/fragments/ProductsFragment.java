@@ -109,10 +109,10 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
             }
         });
 
-        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
-                android.R.color.holo_green_light,
-                android.R.color.holo_orange_light,
-                android.R.color.holo_red_light);
+        mSwipeLayout.setColorSchemeResources(R.color.holo_blue_bright,
+                R.color.holo_green_light,
+                R.color.holo_orange_light,
+                R.color.holo_red_light);
 
         mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
 
@@ -200,12 +200,14 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                             parameters,
                             sortOrder);
                 } else {
+                    String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
+                    String[] parameters = new String[]{ String.valueOf("1") };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             productsUri,
                             PRODUCT_PROJECTION,
-                            null,
-                            null,
+                            query,
+                            parameters,
                             sortOrder);
                 }
                 break;

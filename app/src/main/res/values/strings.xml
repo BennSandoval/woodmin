@@ -27,7 +27,7 @@
     <string name="action_synchronize">Synchronize</string>
 
     <!--Login-->
-    <string name="title_activity_login">Sign in</string>
+    <string name="title_activity_login">Woodmin</string>
     <string name="prompt_server">https://www.yourserver.com</string>
     <string name="prompt_user">API user</string>
     <string name="prompt_password">API secret</string>

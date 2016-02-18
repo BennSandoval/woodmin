@@ -54,9 +54,9 @@ public class CustomersFragment extends Fragment implements
 
     private static final int CUSTOMER_LOADER = 300;
     private static final String[] CUSTOMER_PROJECTION = {
-            WoodminContract.CostumerEntry._ID,
-            WoodminContract.CostumerEntry.COLUMN_ID,
-            WoodminContract.CostumerEntry.COLUMN_JSON,
+            WoodminContract.CustomerEntry._ID,
+            WoodminContract.CustomerEntry.COLUMN_ID,
+            WoodminContract.CustomerEntry.COLUMN_JSON,
     };
 
     private SearchView mSearchView;
@@ -89,7 +89,7 @@ public class CustomersFragment extends Fragment implements
             public void onClick(final View view) {
                 int position = mRecyclerView.getChildPosition(view);
                 mAdapter.getCursor().moveToPosition(position);
-                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.CostumerEntry.COLUMN_ID));
+                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.CustomerEntry.COLUMN_ID));
 /*
                 Intent orderIntent = new Intent(getActivity(), ProductDetail.class);
                 orderIntent.putExtra("product", idSelected);
@@ -116,10 +116,10 @@ public class CustomersFragment extends Fragment implements
             }
         });
 
-        mSwipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
-                android.R.color.holo_green_light,
-                android.R.color.holo_orange_light,
-                android.R.color.holo_red_light);
+        mSwipeLayout.setColorSchemeResources(R.color.holo_blue_bright,
+                R.color.holo_green_light,
+                R.color.holo_orange_light,
+                R.color.holo_red_light);
 
         mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
 
@@ -197,22 +197,22 @@ public class CustomersFragment extends Fragment implements
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.CostumerEntry._ID + " ASC";
+        String sortOrder = WoodminContract.CustomerEntry.COLUMN_ID + " DESC";
         CursorLoader cursorLoader;
-        Uri costumersUri = WoodminContract.CostumerEntry.CONTENT_URI;
+        Uri costumersUri = WoodminContract.CustomerEntry.CONTENT_URI;
         switch (id) {
             case CUSTOMER_LOADER:
                 if(mQuery != null && mQuery.length()>0){
-                    String query = WoodminContract.CostumerEntry.COLUMN_LAST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_EMAIL + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_FIRST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE+ " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_BILLING_LAST_NAME + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE + " LIKE ? OR  " +
-                            WoodminContract.CostumerEntry.COLUMN_FIRST_NAME + " LIKE ?" ;
+                    String query = WoodminContract.CustomerEntry.COLUMN_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_EMAIL + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_SHIPPING_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE+ " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_BILLING_LAST_NAME + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE + " LIKE ? OR  " +
+                            WoodminContract.CustomerEntry.COLUMN_FIRST_NAME + " LIKE ?" ;
                     String[] parameters = new String[]{ "%"+mQuery+"%",
                             "%"+mQuery+"%",
                             "%"+mQuery+"%",
@@ -230,12 +230,14 @@ public class CustomersFragment extends Fragment implements
                             parameters,
                             sortOrder);
                 } else {
+                    String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
+                    String[] parameters = new String[]{ String.valueOf("1") };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             costumersUri,
                             CUSTOMER_PROJECTION,
-                            null,
-                            null,
+                            query,
+                            parameters,
                             sortOrder);
                 }
                 break;

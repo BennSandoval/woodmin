@@ -88,7 +88,7 @@
                 <data
                     android:host="woodmin.com"
                     android:scheme="app"
-                    android:path="order"/>
+                    android:path="/order"/>
             </intent-filter>
             <!-- Accepts URIs that begin with "http://app.woodmin.com/order" -->
             <intent-filter android:label="@string/app_name" >
@@ -97,9 +97,9 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="http"
-                    android:pathPrefix="app"
+                    android:pathPrefix="/app"
                     android:host="woodmin.com"
-                    android:path="order"/>
+                    android:path="/order"/>
             </intent-filter>
         </activity>
 

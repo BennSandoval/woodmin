@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  */
 public class WoodminDbHelper extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     public static final String DATABASE_NAME = "woodmin.db";
 
     public WoodminDbHelper(Context context) {
@@ -107,7 +107,8 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
                 WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE + " TEXT, " +
                 WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE + " TEXT, " +
                 WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY + " TEXT, " +
-                WoodminContract.OrdersEntry.COLUMN_JSON + " TEXT );";
+                WoodminContract.OrdersEntry.COLUMN_JSON + " TEXT, " +
+                WoodminContract.OrdersEntry.COLUMN_ENABLE + " INTEGER);";
 
         final String SQL_CREATE_PRODUCT_TABLE = "CREATE TABLE " + WoodminContract.ProductEntry.TABLE_NAME + " (" +
                 WoodminContract.ProductEntry._ID + " INTEGER PRIMARY KEY, " +
@@ -116,23 +117,25 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
                 WoodminContract.ProductEntry.COLUMN_SKU + " TEXT, " +
                 WoodminContract.ProductEntry.COLUMN_PRICE + " TEXT, " +
                 WoodminContract.ProductEntry.COLUMN_STOCK + " INTEGER, " +
-                WoodminContract.ProductEntry.COLUMN_JSON + " TEXT );";
+                WoodminContract.ProductEntry.COLUMN_JSON + " TEXT, " +
+                WoodminContract.ProductEntry.COLUMN_ENABLE + " INTEGER);";
 
-        final String SQL_CREATE_CONSUMER_TABLE = "CREATE TABLE " + WoodminContract.CostumerEntry.TABLE_NAME + " (" +
-                WoodminContract.CostumerEntry._ID + " INTEGER PRIMARY KEY, " +
-                WoodminContract.CostumerEntry.COLUMN_ID + " INTEGER, " +
-                WoodminContract.CostumerEntry.COLUMN_EMAIL + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_FIRST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_LAST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_SHIPPING_FIRST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_SHIPPING_LAST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_BILLING_FIRST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_BILLING_LAST_NAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_USERNAME + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_LAST_ORDER_ID + " TEXT, " +
-                WoodminContract.CostumerEntry.COLUMN_JSON + " TEXT );";
+        final String SQL_CREATE_CONSUMER_TABLE = "CREATE TABLE " + WoodminContract.CustomerEntry.TABLE_NAME + " (" +
+                WoodminContract.CustomerEntry._ID + " INTEGER PRIMARY KEY, " +
+                WoodminContract.CustomerEntry.COLUMN_ID + " INTEGER, " +
+                WoodminContract.CustomerEntry.COLUMN_EMAIL + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_FIRST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_LAST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_SHIPPING_FIRST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_BILLING_FIRST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_BILLING_LAST_NAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_USERNAME + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_LAST_ORDER_ID + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_JSON + " TEXT, " +
+                WoodminContract.CustomerEntry.COLUMN_ENABLE + " INTEGER);";
 
         sqLiteDatabase.execSQL(SQL_CREATE_SHOP_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_ORDER_TABLE);
@@ -145,7 +148,7 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + WoodminContract.ShopEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + WoodminContract.OrdersEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + WoodminContract.ProductEntry.TABLE_NAME);
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + WoodminContract.CostumerEntry.TABLE_NAME);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + WoodminContract.CustomerEntry.TABLE_NAME);
         onCreate(sqLiteDatabase);
     }
 

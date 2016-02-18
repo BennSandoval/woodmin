@@ -32,7 +32,7 @@ public class Utility {
 
     public static Long getPreferredLastSync(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getLong(context.getString(R.string.pref_last_update_key),0);
+        return prefs.getLong(context.getString(R.string.pref_last_update_key), 0);
     }
 
     public static String getPreferredServer(Context context) {

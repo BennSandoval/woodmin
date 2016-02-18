@@ -65,7 +65,7 @@ public class CustomerAdapter extends CursorRecyclerViewAdapter<CustomerAdapter.V
 
     @Override
     public void onBindViewHolder(ViewHolder holder, Cursor cursor) {
-        String json = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.CostumerEntry.COLUMN_JSON));
+        String json = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.CustomerEntry.COLUMN_JSON));
         if(json!=null) {
             Gson gson = new GsonBuilder().create();
             final Customer customer = gson.fromJson(json, Customer.class);

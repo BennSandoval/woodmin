@@ -81,14 +81,14 @@ public class HeadInfoService extends Service {
 
             //Search in customers by number
             String[] projectionCustomer = {
-                    WoodminContract.CostumerEntry.COLUMN_JSON,
+                    WoodminContract.CustomerEntry.COLUMN_JSON,
             };
-            String selectionCustomer = WoodminContract.CostumerEntry.COLUMN_SHIPPING_PHONE+ " LIKE ? OR  " +
-                    WoodminContract.CostumerEntry.COLUMN_BILLING_PHONE + " LIKE ?" ;
+            String selectionCustomer = WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE+ " LIKE ? OR  " +
+                    WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE + " LIKE ?" ;
             String[] selectionCustomerArgs = new String[]{ "%"+search+"%",
                     "%"+search+"%"};
 
-            Cursor cursorCustomer = getContentResolver().query(WoodminContract.CostumerEntry.CONTENT_URI,
+            Cursor cursorCustomer = getContentResolver().query(WoodminContract.CustomerEntry.CONTENT_URI,
                     projectionCustomer,
                     selectionCustomer,
                     selectionCustomerArgs,

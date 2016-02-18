@@ -6,7 +6,7 @@ import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -39,7 +39,7 @@ import retrofit.client.OkClient;
 import retrofit.client.Response;
 import retrofit.converter.GsonConverter;
 
-public class LoginActivity extends ActionBarActivity {
+public class LoginActivity extends AppCompatActivity {
 
     public final String LOG_TAG = LoginActivity.class.getSimpleName();
 
@@ -69,9 +69,7 @@ public class LoginActivity extends ActionBarActivity {
             mPasswordView = (EditText) findViewById(R.id.password);
 
             //Test instance
-            mServerView.setText("https://www.bennsandoval.com");
-            mUserView.setText("ck_a022f02011f40f25015d281820749b40");
-            mPasswordView.setText("cs_faa80d014232589e82328dc67afe8049");
+
 
             mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                 @Override

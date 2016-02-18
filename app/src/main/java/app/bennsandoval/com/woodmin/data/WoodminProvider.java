@@ -69,7 +69,7 @@ public class WoodminProvider extends ContentProvider {
                 retCursor = mOpenHelper.getReadableDatabase().query(
                         WoodminContract.OrdersEntry.TABLE_NAME,
                         projection,
-                        WoodminContract.OrdersEntry._ID + " = '" + ContentUris.parseId(uri) + "'",
+                        WoodminContract.OrdersEntry.COLUMN_ID + " = '" + ContentUris.parseId(uri) + "'",
                         null,
                         null,
                         null,
@@ -95,7 +95,7 @@ public class WoodminProvider extends ContentProvider {
                 retCursor = mOpenHelper.getReadableDatabase().query(
                         WoodminContract.ProductEntry.TABLE_NAME,
                         projection,
-                        WoodminContract.ProductEntry._ID + " = '" + ContentUris.parseId(uri) + "'",
+                        WoodminContract.ProductEntry.COLUMN_ID + " = '" + ContentUris.parseId(uri) + "'",
                         null,
                         null,
                         null,
@@ -119,9 +119,9 @@ public class WoodminProvider extends ContentProvider {
             // "consumer/#"
             case CONSUMER_ID:{
                 retCursor = mOpenHelper.getReadableDatabase().query(
-                        WoodminContract.CostumerEntry.TABLE_NAME,
+                        WoodminContract.CustomerEntry.TABLE_NAME,
                         projection,
-                        WoodminContract.CostumerEntry._ID + " = '" + ContentUris.parseId(uri) + "'",
+                        WoodminContract.CustomerEntry.COLUMN_ID + " = '" + ContentUris.parseId(uri) + "'",
                         null,
                         null,
                         null,
@@ -132,7 +132,7 @@ public class WoodminProvider extends ContentProvider {
             // "consumer"
             case CONSUMER: {
                 retCursor = mOpenHelper.getReadableDatabase().query(
-                        WoodminContract.CostumerEntry.TABLE_NAME,
+                        WoodminContract.CustomerEntry.TABLE_NAME,
                         projection,
                         selection,
                         selectionArgs,
@@ -167,9 +167,9 @@ public class WoodminProvider extends ContentProvider {
             case PRODUCT_ID:
                 return WoodminContract.ProductEntry.CONTENT_ITEM_TYPE;
             case CONSUMER:
-                return WoodminContract.CostumerEntry.CONTENT_TYPE;
+                return WoodminContract.CustomerEntry.CONTENT_TYPE;
             case CONSUMER_ID:
-                return WoodminContract.CostumerEntry.CONTENT_ITEM_TYPE;
+                return WoodminContract.CustomerEntry.CONTENT_ITEM_TYPE;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
@@ -228,9 +228,9 @@ public class WoodminProvider extends ContentProvider {
             case CONSUMER: {
                 db.beginTransaction();
                 try {
-                    long _id = db.insert(WoodminContract.CostumerEntry.TABLE_NAME, null, contentValues);
+                    long _id = db.insert(WoodminContract.CustomerEntry.TABLE_NAME, null, contentValues);
                     if ( _id > 0 )
-                        returnUri = WoodminContract.CostumerEntry.buildOrderUri(_id);
+                        returnUri = WoodminContract.CustomerEntry.buildOrderUri(_id);
                     else
                         throw new android.database.SQLException("Failed to insert row into " + uri);
                     db.setTransactionSuccessful();
@@ -242,7 +242,7 @@ public class WoodminProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
-        getContext().getContentResolver().notifyChange(uri, null, false);
+        //getContext().getContentResolver().notifyChange(uri, null, false);
         return returnUri;
     }
 
@@ -287,7 +287,7 @@ public class WoodminProvider extends ContentProvider {
                 db.beginTransaction();
                 try {
                     rowsDeleted = db.delete(
-                            WoodminContract.CostumerEntry.TABLE_NAME, selection, selectionArgs);
+                            WoodminContract.CustomerEntry.TABLE_NAME, selection, selectionArgs);
                     db.setTransactionSuccessful();
                 } finally {
                     db.endTransaction();
@@ -296,11 +296,7 @@ public class WoodminProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
-
-        // Because a null deletes all rows
-        if (selection == null || rowsDeleted != 0) {
-            getContext().getContentResolver().notifyChange(uri, null, false);
-        }
+        //getContext().getContentResolver().notifyChange(uri, null, false);
         return rowsDeleted;
 
     }
@@ -345,7 +341,7 @@ public class WoodminProvider extends ContentProvider {
             case CONSUMER:
                 db.beginTransaction();
                 try {
-                    rowsUpdated = db.update(WoodminContract.CostumerEntry.TABLE_NAME, contentValues, selection,
+                    rowsUpdated = db.update(WoodminContract.CustomerEntry.TABLE_NAME, contentValues, selection,
                             selectionArgs);
                     db.setTransactionSuccessful();
                 } finally {
@@ -355,9 +351,7 @@ public class WoodminProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
-        if (rowsUpdated != 0) {
-            getContext().getContentResolver().notifyChange(uri, null, false);
-        }
+        //getContext().getContentResolver().notifyChange(uri, null, false);
         return rowsUpdated;
     }
 
@@ -375,9 +369,10 @@ public class WoodminProvider extends ContentProvider {
         matcher.addURI(authority, WoodminContract.PATH_PRODUCT, PRODUCT);
         matcher.addURI(authority, WoodminContract.PATH_PRODUCT + "/#", PRODUCT_ID);
 
-        matcher.addURI(authority, WoodminContract.PATH_COSTUMER, CONSUMER);
-        matcher.addURI(authority, WoodminContract.PATH_COSTUMER + "/#", CONSUMER_ID);
+        matcher.addURI(authority, WoodminContract.PATH_CUSTOMER, CONSUMER);
+        matcher.addURI(authority, WoodminContract.PATH_CUSTOMER + "/#", CONSUMER_ID);
 
         return matcher;
     }
+
 }

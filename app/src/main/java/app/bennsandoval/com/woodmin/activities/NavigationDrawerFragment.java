@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -17,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -75,7 +75,7 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
 
     private static final int CUSTOMER_LOADER = 3;
     private static final String[] CUSTOMER_PROJECTION = {
-            WoodminContract.CostumerEntry._ID
+            WoodminContract.CustomerEntry._ID
     };
 
     public NavigationDrawerFragment() {
@@ -265,18 +265,18 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     }
 
     private ActionBar getActionBar() {
-        return ((ActionBarActivity) getActivity()).getSupportActionBar();
+        return ((AppCompatActivity) getActivity()).getSupportActionBar();
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.ShopEntry._ID + " ASC";
         CursorLoader cursorLoader;
         switch (id) {
-            case SHOP_LOADER:
+            case SHOP_LOADER: {
                 Uri shopUri = WoodminContract.ShopEntry.CONTENT_URI;
+                String sortOrder = WoodminContract.ShopEntry._ID + " ASC";
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         shopUri,
@@ -284,36 +284,49 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         null,
                         null,
                         sortOrder);
+                }
                 break;
-            case ORDER_LOADER:
+            case ORDER_LOADER: {
+                String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
+                String[] parameters = new String[]{ String.valueOf("1") };
                 Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
+                String sortOrder = WoodminContract.OrdersEntry._ID + " ASC";
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         ordersUri,
                         ORDER_PROJECTION,
-                        null,
-                        null,
+                        query,
+                        parameters,
                         sortOrder);
+                }
                 break;
-            case PRODUCT_LOADER:
+            case PRODUCT_LOADER:{
+                String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
+                String[] parameters = new String[]{ String.valueOf("1") };
                 Uri productUri = WoodminContract.ProductEntry.CONTENT_URI;
+                String sortOrder = WoodminContract.ProductEntry._ID + " ASC";
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         productUri,
                         PRODUCT_PROJECTION,
-                        null,
-                        null,
+                        query,
+                        parameters,
                         sortOrder);
+                }
                 break;
-            case CUSTOMER_LOADER:
-                Uri customerUri = WoodminContract.CostumerEntry.CONTENT_URI;
+            case CUSTOMER_LOADER:{
+                String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
+                String[] parameters = new String[]{ String.valueOf("1") };
+                Uri customerUri = WoodminContract.CustomerEntry.CONTENT_URI;
+                String sortOrder = WoodminContract.CustomerEntry._ID + " ASC";
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         customerUri,
                         CUSTOMER_PROJECTION,
-                        null,
-                        null,
+                        query,
+                        parameters,
                         sortOrder);
+                }
                 break;
             default:
                 cursorLoader = null;
@@ -326,43 +339,53 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         int count = 0;
         switch (cursorLoader.getId()) {
-            case SHOP_LOADER:
-                if (cursor.moveToFirst()) {
-                    do {
-                        String name = cursor.getString(SHOP_COLUMN_NAME);
-                        String description = cursor.getString(SHOP_COLUMN_DESCRIPTION);
+            case SHOP_LOADER:{
+                    if (cursor.moveToFirst()) {
+                        do {
+                            String name = cursor.getString(SHOP_COLUMN_NAME);
+                            String description = cursor.getString(SHOP_COLUMN_DESCRIPTION);
 
-                        if(name!=null){
-                            TextView shopName = (TextView) mDrawerListView.findViewById(R.id.name);
-                            shopName.setText(name);
-                        }
-                        if(description!=null){
-                            TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
-                            resume.setText(description);
-                        }
-                    } while (cursor.moveToNext());
+                            if(name!=null){
+                                TextView shopName = (TextView) mDrawerListView.findViewById(R.id.name);
+                                shopName.setText(name);
+                            }
+                            if(description!=null){
+                                TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
+                                resume.setText(description);
+                            }
+                        } while (cursor.moveToNext());
+                    }
+                    if (cursor!= null) {
+                        cursor.close();
+                    }
                 }
                 break;
-            case ORDER_LOADER:
-                if (cursor!=null) {
-                    count = cursor.getCount();
+            case ORDER_LOADER:{
+                    if (cursor!=null) {
+                        count = cursor.getCount();
+                        mValues[0].setCount(count);
+                        mAdapter.notifyDataSetChanged();
+                        cursor.close();
+                    }
                 }
-                mValues[0].setCount(count);
-                mAdapter.notifyDataSetChanged();
                 break;
-            case PRODUCT_LOADER:
-                if (cursor!=null) {
-                    count = cursor.getCount();
+            case PRODUCT_LOADER: {
+                    if (cursor!=null) {
+                        count = cursor.getCount();
+                        mValues[1].setCount(count);
+                        mAdapter.notifyDataSetChanged();
+                        cursor.close();
+                    }
                 }
-                mValues[1].setCount(count);
-                mAdapter.notifyDataSetChanged();
                 break;
-            case CUSTOMER_LOADER:
-                if (cursor!=null) {
-                    count = cursor.getCount();
+            case CUSTOMER_LOADER:{
+                    if (cursor!=null) {
+                        count = cursor.getCount();
+                        mValues[2].setCount(count);
+                        mAdapter.notifyDataSetChanged();
+                        cursor.close();
+                    }
                 }
-                mValues[2].setCount(count);
-                mAdapter.notifyDataSetChanged();
                 break;
             default:
                 break;
@@ -373,23 +396,27 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
         Log.d(LOG_TAG, "onLoaderReset");
         switch (cursorLoader.getId()) {
-            case SHOP_LOADER:
-                TextView shopName = (TextView) mDrawerListView.findViewById(R.id.name);
-                shopName.setText("Unknow");
-                TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
-                resume.setText("Unknow");
+            case SHOP_LOADER:{
+                    TextView shopName = (TextView) mDrawerListView.findViewById(R.id.name);
+                    shopName.setText("");
+                    TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
+                    resume.setText("");
+                }
                 break;
-            case ORDER_LOADER:
-                mValues[0].setCount(0);
-                mAdapter.notifyDataSetChanged();
+            case ORDER_LOADER:{
+                    mValues[0].setCount(0);
+                    mAdapter.notifyDataSetChanged();
+                }
                 break;
-            case PRODUCT_LOADER:
-                mValues[1].setCount(0);
-                mAdapter.notifyDataSetChanged();
+            case PRODUCT_LOADER:{
+                    mValues[1].setCount(0);
+                    mAdapter.notifyDataSetChanged();
+                }
                 break;
-            case CUSTOMER_LOADER:
-                mValues[2].setCount(0);
-                mAdapter.notifyDataSetChanged();
+            case CUSTOMER_LOADER:{
+                    mValues[2].setCount(0);
+                    mAdapter.notifyDataSetChanged();
+                }
                 break;
             default:
                 break;

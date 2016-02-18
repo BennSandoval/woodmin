@@ -18,10 +18,10 @@ public class WoodminContract {
     public static final String PATH_SHOP = "shop";
     // For instance, content://com.woodmin.app/order/
     public static final String PATH_ORDER = "order";
-    // For instance, content://com.woodmin.app/order/
+    // For instance, content://com.woodmin.app/product/
     public static final String PATH_PRODUCT = "product";
-    // For instance, content://com.woodmin.app/costumer/
-    public static final String PATH_COSTUMER = "costumer";
+    // For instance, content://com.woodmin.app/customer/
+    public static final String PATH_CUSTOMER = "customer";
 
     public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
@@ -157,6 +157,7 @@ public class WoodminContract {
         public static final String COLUMN_CUSTOMER_SHIPPING_COUNTRY = "customer_shipping_country";
 
         public static final String COLUMN_JSON = "json";
+        public static final String COLUMN_ENABLE = "enable";
 
         public static Uri buildOrderUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
@@ -181,6 +182,7 @@ public class WoodminContract {
         public static final String COLUMN_STOCK = "stock";
 
         public static final String COLUMN_JSON = "json";
+        public static final String COLUMN_ENABLE = "enable";
 
         public static Uri buildOrderUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
@@ -188,14 +190,14 @@ public class WoodminContract {
 
     }
 
-    public static final class CostumerEntry implements BaseColumns {
+    public static final class CustomerEntry implements BaseColumns {
 
-        public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_COSTUMER).build();
-        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/" + CONTENT_AUTHORITY + "/" + PATH_COSTUMER;
-        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/" + CONTENT_AUTHORITY + "/" + PATH_COSTUMER;
+        public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_CUSTOMER).build();
+        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/" + CONTENT_AUTHORITY + "/" + PATH_CUSTOMER;
+        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/" + CONTENT_AUTHORITY + "/" + PATH_CUSTOMER;
 
         // Table name
-        public static final String TABLE_NAME = "costumer";
+        public static final String TABLE_NAME = "customer";
 
         //Fields
         public static final String COLUMN_ID = "id";
@@ -214,6 +216,7 @@ public class WoodminContract {
         public static final String COLUMN_BILLING_PHONE = "billing_phone";
 
         public static final String COLUMN_JSON = "json";
+        public static final String COLUMN_ENABLE = "enable";
 
         public static Uri buildOrderUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);

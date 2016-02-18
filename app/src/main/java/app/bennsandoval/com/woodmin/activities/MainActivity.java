@@ -3,10 +3,10 @@ package app.bennsandoval.com.woodmin.activities;
 import android.app.SearchManager;
 import android.content.Intent;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v4.widget.DrawerLayout;
@@ -22,12 +22,10 @@ import app.bennsandoval.com.woodmin.fragments.OrdersFragment;
 import app.bennsandoval.com.woodmin.fragments.ProductsFragment;
 import app.bennsandoval.com.woodmin.fragments.ResumeFragment;
 import app.bennsandoval.com.woodmin.interfaces.NavigationDrawerCallbacks;
-import app.bennsandoval.com.woodmin.models.products.Product;
-import app.bennsandoval.com.woodmin.services.HeadInfoService;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 
-public class MainActivity extends ActionBarActivity implements NavigationDrawerCallbacks {
+public class MainActivity extends AppCompatActivity implements NavigationDrawerCallbacks {
 
     private NavigationDrawerFragment mNavigationDrawerFragment;
     private CharSequence mTitle;
@@ -99,7 +97,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerC
                 }
 
                 //Clear database
-                getApplicationContext().getContentResolver().delete(WoodminContract.CostumerEntry.CONTENT_URI, null, null);
+                getApplicationContext().getContentResolver().delete(WoodminContract.CustomerEntry.CONTENT_URI, null, null);
                 getApplicationContext().getContentResolver().delete(WoodminContract.ProductEntry.CONTENT_URI, null, null);
                 getApplicationContext().getContentResolver().delete(WoodminContract.ShopEntry.CONTENT_URI, null, null);
                 getApplicationContext().getContentResolver().delete(WoodminContract.OrdersEntry.CONTENT_URI, null, null);
