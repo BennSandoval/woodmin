@@ -26,7 +26,12 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.gms.actions.SearchIntents;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
@@ -209,8 +214,19 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                             parameters,
                             sortOrder);
                 } else {
-                    String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
-                    String[] parameters = new String[]{ String.valueOf("1") };
+
+                    Date today = new Date();
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(today);
+                    c.add(Calendar.MONTH, -3);
+                    Date threeMonthsBack = c.getTime();
+
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+                    String startDate = simpleDateFormat.format(threeMonthsBack);
+                    String endDate = simpleDateFormat.format(today);
+
+                    String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ? AND " + WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " BETWEEN ? AND ?";
+                    String[] parameters = new String[]{ String.valueOf("1"), startDate, endDate };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             ordersUri,

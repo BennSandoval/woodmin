@@ -80,7 +80,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(LOG_TAG, "Starting sync");
 
         Long lastSyncTimeStamp =  Utility.getPreferredLastSync(getContext());
-        Log.v(LOG_TAG, "Last sync " + lastSyncTimeStamp);
+        Log.d(LOG_TAG, "Last sync " + lastSyncTimeStamp);
 
         boolean validDate = false;
         if(lastSyncTimeStamp != 0) {
@@ -94,10 +94,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         if(validDate) {
-            Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
             String user = Utility.getPreferredUser(getContext());
-
             AccountManager accountManager = (AccountManager) getContext().getSystemService(Context.ACCOUNT_SERVICE);
             final String authenticationHeader = "Basic " + Base64.encodeToString(
                     (user + ":" + accountManager.getPassword(account)).getBytes(),
@@ -166,6 +164,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             };
             handler.post(runnableCustomers);
 
+        } else {
+            Log.d(LOG_TAG, "Synchronization to early");
         }
 
         getContext().getContentResolver().notifyChange(WoodminContract.ShopEntry.CONTENT_URI, null, false);
@@ -176,6 +176,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void synchronizeCustomers() {
+        Log.v(LOG_TAG,"Customers sync start");
         woocommerceApi.countCustomers(new Callback<Count>() {
 
             @Override
@@ -322,6 +323,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncCustomers() {
+        Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
+
         String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.CustomerEntry.CONTENT_URI,
@@ -333,7 +336,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void synchronizeProducts() {
-
+        Log.v(LOG_TAG,"Products sync start");
         woocommerceApi.countProducts(new Callback<Count>() {
 
             @Override
@@ -466,6 +469,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncProducts() {
+        Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
+
         String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.ProductEntry.CONTENT_URI,
@@ -477,6 +482,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void synchronizeOrders() {
+        Log.v(LOG_TAG,"Orders sync start");
         woocommerceApi.countOrders(new Callback<Count>() {
 
             @Override
@@ -525,10 +531,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         HashMap<String, String> options = new HashMap<>();
         options.put("status","any");
-        options.put("filter[limit]",String.valueOf(sizePageOrders));
+        options.put("filter[limit]", String.valueOf(sizePageOrders));
         options.put("page",String.valueOf(pageOrder));
 
-        woocommerceApi.getOrders(options,new Callback<Orders>() {
+        woocommerceApi.getOrders(options, new Callback<Orders>() {
             @Override
             public void success(Orders orders, Response response) {
                 Log.v(LOG_TAG,"Success page Order " + pageOrder);
@@ -672,6 +678,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
                     pageOrder ++;
                     synchronizeBatchOrders();
+                    getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
                 } else {
                     finalizeSyncOrders();
                 }
@@ -680,6 +687,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncOrders() {
+        Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
+
         String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.OrdersEntry.CONTENT_URI,
@@ -691,7 +700,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void synchronizeShop() {
-
+        Log.v(LOG_TAG,"Shop sync start");
         woocommerceApi.getShop(new Callback<Shop>() {
             @Override
             public void success(Shop shop, Response response) {
