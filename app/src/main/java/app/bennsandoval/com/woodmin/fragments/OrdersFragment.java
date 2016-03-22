@@ -24,6 +24,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.google.android.gms.actions.SearchIntents;
 
@@ -55,6 +56,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
             WoodminContract.OrdersEntry._ID,
             WoodminContract.OrdersEntry.COLUMN_ID,
             WoodminContract.OrdersEntry.COLUMN_JSON,
+            WoodminContract.OrdersEntry.COLUMN_CREATED_AT
     };
 
     private SearchView mSearchView;
@@ -194,39 +196,63 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
         Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
         switch (id) {
             case ORDER_LOADER:
-                if(mQuery != null && mQuery.length()>0){
-                    String query = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " LIKE ? OR  " +
-                            WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME + " LIKE ? OR  " +
-                            WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME + " LIKE ? OR  " +
-                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
-                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
-                            WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ?" ;
-                    String[] parameters = new String[]{ "%"+mQuery+"%",
-                            "%"+mQuery+"%",
-                            "%"+mQuery+"%",
-                            "%"+mQuery+"%",
-                            "%"+mQuery+"%" };
-                    cursorLoader = new CursorLoader(
-                            getActivity().getApplicationContext(),
-                            ordersUri,
-                            ORDER_PROJECTION,
-                            query,
-                            parameters,
-                            sortOrder);
+                if(mQuery != null && mQuery.length()>0) {
+                    if(mQuery.toLowerCase().equals("ship")) {
+
+                        Date now = new Date();
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.setTime(now);
+                        calendar.set(Calendar.HOUR_OF_DAY, 0);
+                        calendar.set(Calendar.MINUTE,0);
+                        calendar.set(Calendar.SECOND, 0);
+                        calendar.set(Calendar.MILLISECOND, 0);
+                        Date startDay = calendar.getTime();
+
+                        String query = WoodminContract.OrdersEntry.COLUMN_STATUS + " = ? AND " + WoodminContract.OrdersEntry.COLUMN_UPDATED_AT + " BETWEEN ? AND ?";
+                        String[] parameters = new String[]{"completed", WoodminContract.getDbDateString(startDay), WoodminContract.getDbDateString(now)};
+                        cursorLoader = new CursorLoader(
+                                getActivity().getApplicationContext(),
+                                ordersUri,
+                                ORDER_PROJECTION,
+                                query,
+                                parameters,
+                                sortOrder);
+
+                        Toast.makeText(getContext(), getString(R.string.toast_search_ship, WoodminContract.getDbDateString(startDay)), Toast.LENGTH_LONG).show();
+
+                    } else {
+                        String query = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " LIKE ? OR  " +
+                                WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME + " LIKE ? OR  " +
+                                WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME + " LIKE ? OR  " +
+                                WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
+                                WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ? OR  " +
+                                WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME + " LIKE ?" ;
+                        String[] parameters = new String[]{
+                                "%" + mQuery + "%",
+                                "%" + mQuery + "%",
+                                "%" + mQuery + "%",
+                                "%" + mQuery + "%",
+                                "%" + mQuery + "%" };
+                        cursorLoader = new CursorLoader(
+                                getActivity().getApplicationContext(),
+                                ordersUri,
+                                ORDER_PROJECTION,
+                                query,
+                                parameters,
+                                sortOrder);
+                    }
                 } else {
 
                     Date today = new Date();
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(today);
-                    c.add(Calendar.MONTH, -3);
-                    Date threeMonthsBack = c.getTime();
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTime(today);
+                    calendar.add(Calendar.MONTH, -1);
+                    Date oneMonthsBack = calendar.getTime();
 
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
-                    String startDate = simpleDateFormat.format(threeMonthsBack);
-                    String endDate = simpleDateFormat.format(today);
-
-                    String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ? AND " + WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " BETWEEN ? AND ?";
-                    String[] parameters = new String[]{ String.valueOf("1"), startDate, endDate };
+                    //String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ? AND " + WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " BETWEEN ? AND ?";
+                    //String[] parameters = new String[]{ String.valueOf("1"), startDate, endDate };
+                    String query = WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " BETWEEN ? AND ?";
+                    String[] parameters = new String[]{WoodminContract.getDbDateString(oneMonthsBack), WoodminContract.getDbDateString(today)};
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             ordersUri,
@@ -250,6 +276,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                 if(mSwipeLayout != null){
                     mSwipeLayout.setRefreshing(false);
                 }
+                Log.d(LOG_TAG, "Orders " + cursor.getCount());
                 mAdapter.changeCursor(cursor);
                 break;
             default:

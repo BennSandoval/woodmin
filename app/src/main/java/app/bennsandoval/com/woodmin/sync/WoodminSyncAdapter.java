@@ -2,6 +2,8 @@ package app.bennsandoval.com.woodmin.sync;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -10,12 +12,15 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SyncRequest;
 import android.content.SyncResult;
-import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v7.app.NotificationCompat;
 import android.util.Base64;
 import android.util.Log;
 
@@ -23,6 +28,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -78,58 +86,92 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onPerformSync(Account account, Bundle bundle, String s, ContentProviderClient contentProviderClient, SyncResult syncResult) {
         Log.d(LOG_TAG, "Starting sync");
-
         Long lastSyncTimeStamp =  Utility.getPreferredLastSync(getContext());
         Log.d(LOG_TAG, "Last sync " + lastSyncTimeStamp);
 
-        boolean validDate = false;
+        String user = Utility.getPreferredUser(getContext());
+        AccountManager accountManager = (AccountManager) getContext().getSystemService(Context.ACCOUNT_SERVICE);
+        final String authenticationHeader = "Basic " + Base64.encodeToString(
+                (user + ":" + accountManager.getPassword(account)).getBytes(),
+                Base64.NO_WRAP);
+
+        RequestInterceptor requestInterceptor = new RequestInterceptor() {
+            @Override
+            public void intercept(RequestInterceptor.RequestFacade request) {
+                request.addHeader("Authorization", authenticationHeader);
+                request.addHeader("Accept" , "application/json");
+                request.addHeader("Content-Type" , "application/json");
+            }
+        };
+
+        OkHttpClient client = new OkHttpClient();
+        client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
+        client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
+        client.setCache(null);
+
+        //TODO Remove this if you don't have a self cert
+        if(Utility.getSSLSocketFactory() != null){
+            client.setSslSocketFactory(Utility.getSSLSocketFactory());
+            client.setHostnameVerifier(Utility.getHostnameVerifier());
+        }
+
+        String server = Utility.getPreferredServer(getContext());
+        RestAdapter restAdapter = new RestAdapter.Builder()
+                .setEndpoint(server + "/wc-api/v3")
+                .setClient(new OkClient(client))
+                .setConverter(new GsonConverter(gson))
+                .setRequestInterceptor(requestInterceptor)
+                .build();
+
+        woocommerceApi = restAdapter.create(Woocommerce.class);
+
+        boolean syncAll = false;
         if(lastSyncTimeStamp != 0) {
             long diff = System.currentTimeMillis() - lastSyncTimeStamp;
             long hours = diff / (60 * 60 * 1000);
             if (hours > 1) {
-                validDate = true;
+                syncAll = true;
             }
         } else {
-            validDate = true;
+            syncAll = true;
         }
 
-        if(validDate) {
-
-            String user = Utility.getPreferredUser(getContext());
-            AccountManager accountManager = (AccountManager) getContext().getSystemService(Context.ACCOUNT_SERVICE);
-            final String authenticationHeader = "Basic " + Base64.encodeToString(
-                    (user + ":" + accountManager.getPassword(account)).getBytes(),
-                    Base64.NO_WRAP);
-
-            RequestInterceptor requestInterceptor = new RequestInterceptor() {
-                @Override
-                public void intercept(RequestInterceptor.RequestFacade request) {
-                    request.addHeader("Authorization", authenticationHeader);
-                    request.addHeader("Accept" , "application/json");
-                    request.addHeader("Content-Type" , "application/json");
+        if(syncAll) {
+            //Shop
+            Handler handler = new Handler(Looper.getMainLooper());
+            Runnable runnableShop = new Runnable() {
+                public void run() {
+                    synchronizeShop();
                 }
             };
+            handler.post(runnableShop);
 
-            OkHttpClient client = new OkHttpClient();
-            client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
-            client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
-            client.setCache(null);
-            /*
-            if(Utility.getSSLSocketFactory() != null){
-                client.setSslSocketFactory(Utility.getSSLSocketFactory());
-                client.setHostnameVerifier(Utility.getHostnameVerifier());
-            }
-            */
+            //Products
+            Runnable runnableProducts = new Runnable() {
+                public void run() {
+                    synchronizeProducts(null);
+                }
+            };
+            handler.post(runnableProducts);
 
-            String server = Utility.getPreferredServer(getContext());
-            RestAdapter restAdapter = new RestAdapter.Builder()
-                    .setEndpoint(server + "/wc-api/v3")
-                    .setClient(new OkClient(client))
-                    .setConverter(new GsonConverter(gson))
-                    .setRequestInterceptor(requestInterceptor)
-                    .build();
+            //Orders
+            Runnable runnableOrders = new Runnable() {
+                public void run() {
+                    synchronizeOrders(null);
+                }
+            };
+            handler.post(runnableOrders);
 
-            woocommerceApi = restAdapter.create(Woocommerce.class);
+            //Customers
+            Runnable runnableCustomers = new Runnable() {
+                public void run() {
+                    synchronizeCustomers(null);
+                }
+            };
+            handler.post(runnableCustomers);
+        } else {
+            Log.d(LOG_TAG, "Synchronization to early");
+            final Date lastSync = new Date(lastSyncTimeStamp);
 
             //Shop
             Handler handler = new Handler(Looper.getMainLooper());
@@ -143,7 +185,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             //Products
             Runnable runnableProducts = new Runnable() {
                 public void run() {
-                    synchronizeProducts();
+                    synchronizeProducts(lastSync);
                 }
             };
             handler.post(runnableProducts);
@@ -151,7 +193,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             //Orders
             Runnable runnableOrders = new Runnable() {
                 public void run() {
-                    synchronizeOrders();
+                    synchronizeOrders(lastSync);
                 }
             };
             handler.post(runnableOrders);
@@ -159,71 +201,84 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             //Customers
             Runnable runnableCustomers = new Runnable() {
                 public void run() {
-                    synchronizeCustomers();
+                    synchronizeCustomers(lastSync);
                 }
             };
             handler.post(runnableCustomers);
-
-        } else {
-            Log.d(LOG_TAG, "Synchronization to early");
         }
 
-        getContext().getContentResolver().notifyChange(WoodminContract.ShopEntry.CONTENT_URI, null, false);
-        getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
-        getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
-        getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
+        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Notification notification = new NotificationCompat.Builder(getContext())
+                .setSmallIcon(R.drawable.ic_launcher)
+                .setSound(uri)
+                .setWhen(System.currentTimeMillis())
+                .setContentTitle(getContext().getString(R.string.app_name))
+                .setContentText(getContext().getString(R.string.start_sync))
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManager notificationManager;
+        notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(0, notification);
 
     }
 
-    private void synchronizeCustomers() {
-        Log.v(LOG_TAG,"Customers sync start");
-        woocommerceApi.countCustomers(new Callback<Count>() {
+    private void synchronizeCustomers(final Date date) {
+        Log.v(LOG_TAG, "Customers sync start");
+        if(date == null) {
+            woocommerceApi.countCustomers(new Callback<Count>() {
 
-            @Override
-            public void success(Count count, Response response) {
+                @Override
+                public void success(Count count, Response response) {
 
-                try {
-                    sizeCustomers = Integer.valueOf(count.getCount());
-                } catch (NumberFormatException exception) {
-                    Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    try {
+                        sizeCustomers = Integer.valueOf(count.getCount());
+                    } catch (NumberFormatException exception) {
+                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    }
+                    ContentValues values = new ContentValues();
+                    values.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 0);
+                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.CustomerEntry.CONTENT_URI, values, null, null);
+                    Log.v(LOG_TAG, "Customers " + ordersRowsDisabled + " disabled");
+                    Log.v(LOG_TAG, "Customers " + sizeOrders + " to sync");
+                    synchronizeBatchCustomers(date);
+
                 }
-                ContentValues values = new ContentValues();
-                values.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 0);
-                int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.CustomerEntry.CONTENT_URI, values, null, null);
-                Log.v(LOG_TAG, "Customers " + ordersRowsDisabled + " disabled");
-                Log.v(LOG_TAG, "Customers " + sizeOrders + " to sync");
-                synchronizeBatchCustomers();
 
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Products sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG, "SSLHandshakeException Products sync");
-                } else if (error.getResponse() == null) {
-                    Log.e(LOG_TAG, "Not response error Products sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG, httpCode + " error Products sync");
-                    switch (httpCode) {
-                        case 401:
-                            break;
-                        default:
-                            break;
+                @Override
+                public void failure(RetrofitError error) {
+                    Log.e(LOG_TAG, "Products sync error");
+                    if (error.getCause() instanceof SSLHandshakeException) {
+                        Log.e(LOG_TAG, "SSLHandshakeException Products sync");
+                    } else if (error.getResponse() == null) {
+                        Log.e(LOG_TAG, "Not response error Products sync");
+                    } else {
+                        int httpCode = error.getResponse().getStatus();
+                        Log.e(LOG_TAG, httpCode + " error Products sync");
+                        switch (httpCode) {
+                            case 401:
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
-                getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
-            }
-        });
+            });
+        } else {
+            synchronizeBatchCustomers(date);
+        }
     }
 
-    private void synchronizeBatchCustomers() {
+    private void synchronizeBatchCustomers(final Date date) {
 
-        Log.v(LOG_TAG, "Read Customers " + sizeCustomers + " Page " + pageCustomer);
+        Log.v(LOG_TAG,"Customers Total:" + sizeCustomers + " Current: " + pageCustomer * sizePageCustomer + " Page : " + pageCustomer);
 
         HashMap<String, String> options = new HashMap<>();
         options.put("filter[limit]", String.valueOf(sizePageCustomer));
+        if(date != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            options.put("filter[updated_at_min]", dateFormat.format(date));
+        }
         options.put("page", String.valueOf(pageCustomer));
 
         woocommerceApi.getCustomers(options, new Callback<Customers>() {
@@ -231,6 +286,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             public void success(Customers customers, Response response) {
                 Log.v(LOG_TAG, "Sucess page Customer " + pageCustomer);
 
+                ArrayList<ContentValues> customersValues = new ArrayList<ContentValues>();
                 for (Customer customer : customers.getCustomers()) {
 
                     ContentValues customerValues = new ContentValues();
@@ -258,36 +314,17 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     customerValues.put(WoodminContract.CustomerEntry.COLUMN_JSON, gson.toJson(customer));
                     customerValues.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 1);
 
-                    //Search in customer by id
-                    String[] projection = {
-                            WoodminContract.CustomerEntry.COLUMN_ID,
-                    };
-                    String selection = WoodminContract.CustomerEntry.COLUMN_ID + " = ?";
-                    String[] selectionArgs = new String[]{String.valueOf(customer.getId())};
-                    Cursor cursor = getContext().getContentResolver().query(WoodminContract.CustomerEntry.CONTENT_URI,
-                            projection,
-                            selection,
-                            selectionArgs,
-                            null);
-
-                    if (cursor != null && cursor.getCount() < 0) {
-                        int ordersRowsUpdated = getContext().getContentResolver().update(WoodminContract.CustomerEntry.CONTENT_URI, customerValues, selection, selectionArgs);
-                        Log.v(LOG_TAG, "Customers " + ordersRowsUpdated + " updated");
-                    } else {
-                        Uri insertedCustomertUri = getContext().getContentResolver().insert(WoodminContract.CustomerEntry.CONTENT_URI, customerValues);
-                        long customerId = ContentUris.parseId(insertedCustomertUri);
-                        Log.d(LOG_TAG, "Customer successful inserted ID: " + customerId);
-                    }
-                    if (cursor != null) {
-                        cursor.close();
-                    }
-
+                    customersValues.add(customerValues);
                 }
+
+                ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
+                customersValuesArray = customersValues.toArray(customersValuesArray);
+                int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
+                Log.v(LOG_TAG,"Customers " + customersRowsUpdated + " updated");
 
                 if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
                     pageCustomer++;
-                    synchronizeBatchCustomers();
-                    getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
+                    synchronizeBatchCustomers(date);
                 } else {
                     finalizeSyncCustomers();
                 }
@@ -313,7 +350,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
                     pageCustomer++;
-                    synchronizeBatchCustomers();
+                    synchronizeBatchCustomers(date);
                 } else {
                     finalizeSyncCustomers();
                 }
@@ -323,6 +360,26 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncCustomers() {
+
+        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
+        Notification notification = new NotificationCompat.Builder(getContext())
+                .setContentTitle(getContext().getString(R.string.app_name))
+                .setContentText(getContext().getString(R.string.customer_sync_finish))
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(getContext().getString(R.string.customer_sync_finish)))
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setVibrate(new long[]{0, 400})
+                .setSmallIcon(R.drawable.ic_media_play)
+                .setLargeIcon(bm)
+                .setWhen(System.currentTimeMillis())
+                .setSound(uri)
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(1, notification);
+
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
         String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
@@ -335,56 +392,62 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         pageCustomer = 0;
     }
 
-    private void synchronizeProducts() {
-        Log.v(LOG_TAG,"Products sync start");
-        woocommerceApi.countProducts(new Callback<Count>() {
+    private void synchronizeProducts(final Date date) {
+        Log.v(LOG_TAG, "Products sync start");
+        if(date == null) {
+            woocommerceApi.countProducts(new Callback<Count>() {
 
-            @Override
-            public void success(Count count, Response response) {
+                @Override
+                public void success(Count count, Response response) {
 
-                try {
-                    sizeProducts = Integer.valueOf(count.getCount());
-                } catch (NumberFormatException exception) {
-                    Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    try {
+                        sizeProducts = Integer.valueOf(count.getCount());
+                    } catch (NumberFormatException exception) {
+                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    }
+                    ContentValues values = new ContentValues();
+                    values.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 0);
+                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.ProductEntry.CONTENT_URI, values, null, null);
+                    Log.v(LOG_TAG, "Products " + ordersRowsDisabled + " disabled");
+                    Log.v(LOG_TAG, "Products " + sizeOrders + " to sync");
+
+                    synchronizeBatchProducts(date);
+
                 }
-                ContentValues values = new ContentValues();
-                values.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 0);
-                int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.ProductEntry.CONTENT_URI, values, null, null);
-                Log.v(LOG_TAG, "Products " + ordersRowsDisabled + " disabled");
-                Log.v(LOG_TAG, "Products " + sizeOrders + " to sync");
 
-                synchronizeBatchProducts();
-
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Products sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG, "SSLHandshakeException Products sync");
-                } else if (error.getResponse() == null) {
-                    Log.e(LOG_TAG, "Not response error Products sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG, httpCode + " error Products sync");
-                    switch (httpCode) {
-                        case 401:
-                            break;
-                        default:
-                            break;
+                @Override
+                public void failure(RetrofitError error) {
+                    Log.e(LOG_TAG, "Products sync error");
+                    if (error.getCause() instanceof SSLHandshakeException) {
+                        Log.e(LOG_TAG, "SSLHandshakeException Products sync");
+                    } else if (error.getResponse() == null) {
+                        Log.e(LOG_TAG, "Not response error Products sync");
+                    } else {
+                        int httpCode = error.getResponse().getStatus();
+                        Log.e(LOG_TAG, httpCode + " error Products sync");
+                        switch (httpCode) {
+                            case 401:
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
-                getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
-            }
-        });
+            });
+        } else {
+            synchronizeBatchProducts(date);
+        }
     }
 
-    private void synchronizeBatchProducts() {
-
-        Log.v(LOG_TAG, "Read Products " + sizeProducts + " Page " + pageProduct);
+    private void synchronizeBatchProducts(final Date date) {
+        Log.v(LOG_TAG, "Products Total:" + sizeProducts + " Current: " + pageProduct * sizePageProduct + " Page : " + pageProduct);
 
         HashMap<String, String> options = new HashMap<>();
         options.put("filter[limit]", String.valueOf(sizePageProduct));
+        if(date != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            options.put("filter[updated_at_min]", dateFormat.format(date));
+        }
         options.put("page", String.valueOf(pageProduct));
         options.put("filter[post_status]", "any");
 
@@ -393,6 +456,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             public void success(Products products, Response response) {
                 Log.v(LOG_TAG, "Sucess page Product " + pageProduct);
 
+                ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
                 for (Product product : products.getProducts()) {
 
                     ContentValues productValues = new ContentValues();
@@ -404,36 +468,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     productValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
                     productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
 
-                    //Search in product by id
-                    String[] projection = {
-                            WoodminContract.ProductEntry.COLUMN_ID,
-                    };
-                    String selection = WoodminContract.ProductEntry.COLUMN_ID + " = ?";
-                    String[] selectionArgs = new String[]{String.valueOf(product.getId())};
-                    Cursor cursor = getContext().getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
-                            projection,
-                            selection,
-                            selectionArgs,
-                            null);
-
-                    if (cursor != null && cursor.getCount() > 0) {
-                        int ordersRowsUpdated = getContext().getContentResolver().update(WoodminContract.ProductEntry.CONTENT_URI, productValues, selection, selectionArgs);
-                        Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
-                    } else {
-                        Uri insertedProductUri = getContext().getContentResolver().insert(WoodminContract.ProductEntry.CONTENT_URI, productValues);
-                        long productId = ContentUris.parseId(insertedProductUri);
-                        Log.d(LOG_TAG, "Product successful inserted ID: " + productId);
-                    }
-                    if (cursor!= null) {
-                        cursor.close();
-                    }
+                    productsValues.add(productValues);
 
                 }
 
+                ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+                productsValuesArray = productsValues.toArray(productsValuesArray);
+                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+                Log.v(LOG_TAG,"Products " + ordersRowsUpdated + " updated");
+
                 if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
                     pageProduct++;
-                    synchronizeBatchProducts();
-                    getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
+                    synchronizeBatchProducts(date);
                 } else {
                     finalizeSyncProducts();
                 }
@@ -459,7 +505,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
                     pageProduct++;
-                    synchronizeBatchProducts();
+                    synchronizeBatchProducts(date);
                 } else {
                     finalizeSyncProducts();
                 }
@@ -469,6 +515,26 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncProducts() {
+
+        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
+        Notification notification = new NotificationCompat.Builder(getContext())
+                .setContentTitle(getContext().getString(R.string.app_name))
+                .setContentText(getContext().getString(R.string.product_sync_finish))
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(getContext().getString(R.string.product_sync_finish)))
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setVibrate(new long[]{0, 400})
+                .setSmallIcon(R.drawable.ic_media_play)
+                .setLargeIcon(bm)
+                .setWhen(System.currentTimeMillis())
+                .setSound(uri)
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(2, notification);
+
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
         String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
@@ -481,72 +547,86 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         pageProduct = 0;
     }
 
-    private void synchronizeOrders() {
-        Log.v(LOG_TAG,"Orders sync start");
-        woocommerceApi.countOrders(new Callback<Count>() {
+    private void synchronizeOrders(final Date date) {
+        Log.v(LOG_TAG, "Orders sync start");
+        if(date == null) {
+            woocommerceApi.countOrders(new Callback<Count>() {
 
-            @Override
-            public void success(Count count, Response response) {
+                @Override
+                public void success(Count count, Response response) {
 
-                try {
-                    sizeOrders = Integer.valueOf(count.getCount());
-                } catch (NumberFormatException exception) {
-                    Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    try {
+                        sizeOrders = Integer.valueOf(count.getCount());
+                    } catch (NumberFormatException exception) {
+                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    }
+
+                    ContentValues values = new ContentValues();
+                    values.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 0);
+                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.OrdersEntry.CONTENT_URI, values, null, null);
+                    Log.v(LOG_TAG, "Orders " + ordersRowsDisabled + " disabled");
+                    Log.v(LOG_TAG, "Orders " + sizeOrders + " to sync");
+
+                    synchronizeBatchOrders(date);
+
                 }
 
-                ContentValues values = new ContentValues();
-                values.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 0);
-                int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.OrdersEntry.CONTENT_URI, values, null, null);
-                Log.v(LOG_TAG, "Orders " + ordersRowsDisabled + " disabled");
-                Log.v(LOG_TAG, "Orders " + sizeOrders + " to sync");
-
-                synchronizeBatchOrders();
-
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Orders sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG, "SSLHandshakeException Orders sync");
-                } else if (error.getResponse() == null) {
-                    Log.e(LOG_TAG, "Not response error Orders sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG, httpCode + " error Orders sync");
-                    switch (httpCode) {
-                        case 401:
-                            break;
-                        default:
-                            break;
+                @Override
+                public void failure(RetrofitError error) {
+                    Log.e(LOG_TAG, "Orders sync error");
+                    if (error.getCause() instanceof SSLHandshakeException) {
+                        Log.e(LOG_TAG, "SSLHandshakeException Orders sync");
+                    } else if (error.getResponse() == null) {
+                        Log.e(LOG_TAG, "Not response error Orders sync");
+                    } else {
+                        int httpCode = error.getResponse().getStatus();
+                        Log.e(LOG_TAG, httpCode + " error Orders sync");
+                        switch (httpCode) {
+                            case 401:
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
-                getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
-            }
-        });
+            });
+        } else {
+            synchronizeBatchOrders(date);
+        }
     }
 
-    private void synchronizeBatchOrders() {
-        Log.v(LOG_TAG,"Orders Read " + sizeOrders + " Page " + pageOrder);
+    private void synchronizeBatchOrders(final Date date) {
+        Log.v(LOG_TAG,"Orders Read Total:" + sizeOrders + " Current: " + pageOrder * sizePageOrders + " Page : " + pageOrder);
 
         HashMap<String, String> options = new HashMap<>();
         options.put("status","any");
         options.put("filter[limit]", String.valueOf(sizePageOrders));
+        if(date != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            options.put("filter[updated_at_min]", dateFormat.format(date));
+        }
         options.put("page",String.valueOf(pageOrder));
 
         woocommerceApi.getOrders(options, new Callback<Orders>() {
             @Override
             public void success(Orders orders, Response response) {
                 Log.v(LOG_TAG,"Success page Order " + pageOrder);
+                ArrayList<ContentValues> ordersValues = new ArrayList<>();
 
                 for(Order order:orders.getOrders()) {
 
                     ContentValues orderValues = new ContentValues();
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
-                    //orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, order.getCreatedAt());
-                    //orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, order.getUpdatedAt());
-                    //orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, order.getCompletedAt());
+                    if(order.getCreatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
+                    }
+                    if(order.getUpdatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
+                    }
+                    if(order.getCompletedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
+                    }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
@@ -591,7 +671,9 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
-                    //orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, order.getCustomer().getLastOrderDate());
+                    if(order.getCustomer().getLastOrderDate() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
+                    }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
@@ -622,36 +704,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON,gson.toJson(order));
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
 
-                    //Search in orders by id
-                    String[] projection = {
-                            WoodminContract.OrdersEntry.COLUMN_ID,
-                    };
-                    String selection = WoodminContract.OrdersEntry.COLUMN_ID + " = ?";
-                    String[] selectionArgs = new String[]{ String.valueOf(order.getId()) };
-                    Cursor cursor = getContext().getContentResolver().query(WoodminContract.OrdersEntry.CONTENT_URI,
-                            projection,
-                            selection,
-                            selectionArgs,
-                            null);
-
-                    if (cursor!= null && cursor.getCount() > 0) {
-                        int ordersRowsUpdated = getContext().getContentResolver().update(WoodminContract.OrdersEntry.CONTENT_URI, orderValues, selection, selectionArgs);
-                        Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
-                    } else {
-                        Uri insertedOrderUri = getContext().getContentResolver().insert(WoodminContract.OrdersEntry.CONTENT_URI, orderValues);
-                        long orderId = ContentUris.parseId(insertedOrderUri);
-                        Log.d(LOG_TAG, "Order successful inserted ID: " + orderId);
-                    }
-                    if (cursor!= null) {
-                        cursor.close();
-                    }
+                    ordersValues.add(orderValues);
 
                 }
 
+                ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
+                ordersValuesArray = ordersValues.toArray(ordersValuesArray);
+                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
+                Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
+
                 if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
                     pageOrder ++;
-                    synchronizeBatchOrders();
-                    getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
+                    synchronizeBatchOrders(date);
                 } else {
                     finalizeSyncOrders();
                 }
@@ -677,8 +741,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
                     pageOrder ++;
-                    synchronizeBatchOrders();
-                    getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
+                    synchronizeBatchOrders(date);
                 } else {
                     finalizeSyncOrders();
                 }
@@ -687,6 +750,26 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void finalizeSyncOrders() {
+
+        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
+        Notification notification = new NotificationCompat.Builder(getContext())
+                .setContentTitle(getContext().getString(R.string.app_name))
+                .setContentText(getContext().getString(R.string.order_sync_finish))
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(getContext().getString(R.string.order_sync_finish)))
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setVibrate(new long[]{0, 400})
+                .setSmallIcon(R.drawable.ic_media_play)
+                .setLargeIcon(bm)
+                .setWhen(System.currentTimeMillis())
+                .setSound(uri)
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(3, notification);
+
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
         String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
@@ -724,7 +807,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 Uri insertedShopUri = getContext().getContentResolver().insert(WoodminContract.ShopEntry.CONTENT_URI, shopValues);
                 long shopId = ContentUris.parseId(insertedShopUri);
                 Log.d(LOG_TAG, "Shop successful inserted ID: " + shopId);
-                getContext().getContentResolver().notifyChange(WoodminContract.ShopEntry.CONTENT_URI, null, false);
             }
 
             @Override
@@ -744,7 +826,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                             break;
                     }
                 }
-                getContext().getContentResolver().notifyChange(WoodminContract.ShopEntry.CONTENT_URI, null, false);
             }
         });
 

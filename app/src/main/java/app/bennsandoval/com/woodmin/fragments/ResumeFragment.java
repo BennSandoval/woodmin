@@ -165,7 +165,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-
+        Log.d(LOG_TAG, "onLoadFinished");
         Iterator<Resume> resumeIterator = mResume.iterator();
         switch (cursorLoader.getId()) {
             case ORDER_LOADER:

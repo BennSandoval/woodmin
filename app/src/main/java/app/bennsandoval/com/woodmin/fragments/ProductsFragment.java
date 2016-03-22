@@ -200,14 +200,14 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                             parameters,
                             sortOrder);
                 } else {
-                    String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
-                    String[] parameters = new String[]{ String.valueOf("1") };
+                    //String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
+                    //String[] parameters = new String[]{ String.valueOf("1") };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             productsUri,
                             PRODUCT_PROJECTION,
-                            query,
-                            parameters,
+                            null,
+                            null,
                             sortOrder);
                 }
                 break;

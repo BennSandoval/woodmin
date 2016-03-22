@@ -72,6 +72,7 @@
                         android:layout_width="25dp"
                         android:layout_height="25dp"
                         android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView
@@ -92,7 +93,7 @@
                         android:textColor="@color/primary"
                         android:textStyle="bold"
                         android:layout_gravity="center_vertical"
-                        android:gravity="right"/>
+                        android:gravity="end"/>
 
                 </LinearLayout>
 
@@ -102,7 +103,9 @@
                     android:layout_height="wrap_content"
                     android:paddingTop="5dp"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="40dp"
                     android:textSize="14sp"
                     android:textColor="@color/gray"
                     android:layout_gravity="center_vertical"/>
@@ -112,7 +115,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="40dp"
                     android:paddingBottom="5dp">
 
                     <TextView
@@ -141,7 +146,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="40dp"
                     android:paddingBottom="5dp">
 
                     <TextView
@@ -170,7 +177,9 @@
                     android:layout_height="1dp"
                     android:paddingTop="5dp"
                     android:layout_marginLeft="40dp"
+                    android:layout_marginStart="40dp"
                     android:layout_marginRight="10dp"
+                    android:layout_marginEnd="10dp"
                     android:background="@color/gray_divider"/>
 
                 <LinearLayout
@@ -184,7 +193,9 @@
                         android:layout_height="fill_parent"
                         android:layout_weight="5"
                         android:paddingLeft="40dp"
+                        android:paddingStart="40dp"
                         android:paddingRight="10dp"
+                        android:paddingEnd="10dp"
                         android:paddingTop="15dp"
                         android:paddingBottom="15dp"
                         android:orientation="horizontal"
@@ -214,11 +225,13 @@
                         android:layout_height="fill_parent"
                         android:layout_weight="5"
                         android:paddingLeft="40dp"
+                        android:paddingStart="40dp"
                         android:paddingRight="10dp"
+                        android:paddingEnd="10dp"
                         android:paddingTop="15dp"
                         android:paddingBottom="15dp"
                         android:orientation="horizontal"
-                        android:gravity="right"
+                        android:gravity="end"
                         android:background="@drawable/customer_action_selector">
 
                         <ImageView
@@ -231,6 +244,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:paddingLeft="10dp"
+                            android:paddingEnd="10dp"
                             android:textSize="14sp"
                             android:textColor="@color/primary"
                             android:text="@string/call"
@@ -266,13 +280,15 @@
                     android:orientation="horizontal"
                     android:paddingTop="10dp"
                     android:paddingLeft="10dp"
-                    android:paddingRight="10dp">
+                    android:paddingRight="10dp"
+                    android:paddingEnd="10dp">
 
                     <ImageView
                         android:src="@drawable/payment_info"
                         android:layout_width="25dp"
                         android:layout_height="25dp"
                         android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView
@@ -293,7 +309,7 @@
                         android:textColor="@color/gray"
                         android:textStyle="bold"
                         android:layout_gravity="center_vertical"
-                        android:gravity="right"/>
+                        android:gravity="end"/>
 
                 </LinearLayout>
 
@@ -303,7 +319,9 @@
                     android:orientation="horizontal"
                     android:paddingTop="5dp"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
                     android:paddingBottom="5dp">
 
                     <TextView
@@ -334,7 +352,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
                     android:paddingBottom="5dp">
 
                     <TextView
@@ -365,7 +385,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
                     android:paddingBottom="10dp">
 
                     <TextView
@@ -416,13 +438,16 @@
                     android:orientation="horizontal"
                     android:paddingTop="10dp"
                     android:paddingLeft="10dp"
-                    android:paddingRight="10dp">
+                    android:paddingStart="10dp"
+                    android:paddingRight="10dp"
+                    android:paddingEnd="10dp">
 
                     <ImageView
                         android:src="@drawable/billing_info"
                         android:layout_width="25dp"
                         android:layout_height="25dp"
                         android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView
@@ -442,7 +467,9 @@
                     android:layout_height="wrap_content"
                     android:paddingTop="5dp"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
                     android:paddingBottom="10dp"
                     android:textSize="14sp"
                     android:textColor="@color/gray"
@@ -473,16 +500,20 @@
                     android:orientation="horizontal"
                     android:paddingTop="10dp"
                     android:paddingLeft="10dp"
-                    android:paddingRight="10dp">
+                    android:paddingStart="10dp"
+                    android:paddingRight="10dp"
+                    android:paddingEnd="10dp">
 
                     <ImageView
                         android:src="@drawable/shipping_info"
                         android:layout_width="25dp"
                         android:layout_height="25dp"
                         android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView
+                        android:id="@+id/shipping_title"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="5"
@@ -500,11 +531,64 @@
                     android:layout_height="wrap_content"
                     android:paddingTop="5dp"
                     android:paddingLeft="40dp"
+                    android:paddingStart="40dp"
                     android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
                     android:paddingBottom="10dp"
                     android:textSize="14sp"
                     android:textColor="@color/gray"
                     android:layout_gravity="center_vertical"/>
+
+            </LinearLayout>
+
+        </android.support.v7.widget.CardView>
+
+        <android.support.v7.widget.CardView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            card_view:cardUseCompatPadding="true"
+            card_view:cardCornerRadius="0dp"
+            card_view:cardElevation="5dp">
+
+            <LinearLayout
+                android:id="@+id/notes"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="10dp"
+                    android:paddingLeft="10dp"
+                    android:paddingStart="10dp"
+                    android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
+                    android:layout_marginBottom="10dp">
+
+                    <ImageView
+                        android:src="@drawable/billing_info"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
+                        android:layout_gravity="center_vertical"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="5"
+                        android:textSize="14sp"
+                        android:textColor="@android:color/black"
+                        android:layout_gravity="center_vertical"
+                        android:text="@string/order_note">
+                    </TextView>
+
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -532,13 +616,17 @@
                     android:orientation="horizontal"
                     android:paddingTop="10dp"
                     android:paddingLeft="10dp"
-                    android:paddingRight="10dp">
+                    android:paddingStart="10dp"
+                    android:paddingRight="10dp"
+                    android:paddingEnd="10dp"
+                    android:layout_marginBottom="10dp">
 
                     <ImageView
                         android:src="@drawable/shopping_info"
                         android:layout_width="25dp"
                         android:layout_height="25dp"
                         android:layout_marginRight="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView

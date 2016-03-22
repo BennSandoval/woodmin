@@ -1,4 +1,4 @@
-package app.bennsandoval.com.woodmin.activities;
+package app.bennsandoval.com.woodmin.fragments;
 
 import android.app.Activity;
 import android.database.Cursor;
@@ -281,42 +281,41 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                 }
                 break;
             case ORDER_LOADER: {
+                Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
                 String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
                 String[] parameters = new String[]{ String.valueOf("1") };
-                Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         ordersUri,
                         COUNT_PROJECTION,
-                        query,
-                        parameters,
+                        null,
+                        null,
                         null);
                 }
                 break;
             case PRODUCT_LOADER:{
+                Uri productUri = WoodminContract.ProductEntry.CONTENT_URI;
                 String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
                 String[] parameters = new String[]{ String.valueOf("1") };
-                Uri productUri = WoodminContract.ProductEntry.CONTENT_URI;
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         productUri,
                         COUNT_PROJECTION,
-                        query,
-                        parameters,
+                        null,
+                        null,
                         null);
                 }
-
                 break;
             case CUSTOMER_LOADER:{
+                Uri customerUri = WoodminContract.CustomerEntry.CONTENT_URI;
                 String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
                 String[] parameters = new String[]{ String.valueOf("1") };
-                Uri customerUri = WoodminContract.CustomerEntry.CONTENT_URI;
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         customerUri,
                         COUNT_PROJECTION,
-                        query,
-                        parameters,
+                        null,
+                        null,
                         null);
                 }
                 break;
@@ -349,7 +348,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         } while (cursor.moveToNext());
                     }
                     cursor.close();
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case ORDER_LOADER: {
@@ -360,7 +358,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         } while (cursor.moveToNext());
                     }
                     cursor.close();
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case PRODUCT_LOADER: {
@@ -371,7 +368,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         } while (cursor.moveToNext());
                     }
                     cursor.close();
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case CUSTOMER_LOADER: {
@@ -382,12 +378,12 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         } while (cursor.moveToNext());
                     }
                     cursor.close();
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             default:
                 break;
         }
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -399,27 +395,24 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                     shopName.setText("");
                     TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
                     resume.setText("");
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case ORDER_LOADER: {
                     mValues[0].setCount(0);
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case PRODUCT_LOADER: {
                     mValues[1].setCount(0);
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             case CUSTOMER_LOADER: {
                     mValues[2].setCount(0);
-                    mAdapter.notifyDataSetChanged();
                 }
                 break;
             default:
                 break;
         }
+        mAdapter.notifyDataSetChanged();
     }
 
 }

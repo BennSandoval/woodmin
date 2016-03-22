@@ -18,6 +18,7 @@ import java.util.List;
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.fragments.CustomersFragment;
+import app.bennsandoval.com.woodmin.fragments.NavigationDrawerFragment;
 import app.bennsandoval.com.woodmin.fragments.OrdersFragment;
 import app.bennsandoval.com.woodmin.fragments.ProductsFragment;
 import app.bennsandoval.com.woodmin.fragments.ResumeFragment;

@@ -6,4 +6,4 @@
     android:divider="@android:color/transparent"
     android:dividerHeight="0dp"
     android:background="@android:color/white"
-    tools:context="app.bennsandoval.com.woodmin.activities.NavigationDrawerFragment" />
+    tools:context=".fragments.NavigationDrawerFragment" />

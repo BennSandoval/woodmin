@@ -6,6 +6,7 @@ import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
 import android.net.Uri;
 
 /**
@@ -200,7 +201,7 @@ public class WoodminProvider extends ContentProvider {
             case ORDER: {
                 db.beginTransaction();
                 try {
-                    long _id = db.insert(WoodminContract.OrdersEntry.TABLE_NAME, null, contentValues);
+                    long _id = db.insertWithOnConflict(WoodminContract.OrdersEntry.TABLE_NAME, null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
                     if ( _id > 0 )
                         returnUri = WoodminContract.OrdersEntry.buildOrderUri(_id);
                     else
@@ -214,7 +215,7 @@ public class WoodminProvider extends ContentProvider {
             case PRODUCT: {
                 db.beginTransaction();
                 try {
-                    long _id = db.insert(WoodminContract.ProductEntry.TABLE_NAME, null, contentValues);
+                    long _id = db.insertWithOnConflict(WoodminContract.ProductEntry.TABLE_NAME, null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
                     if ( _id > 0 )
                         returnUri = WoodminContract.ProductEntry.buildOrderUri(_id);
                     else
@@ -228,7 +229,7 @@ public class WoodminProvider extends ContentProvider {
             case CONSUMER: {
                 db.beginTransaction();
                 try {
-                    long _id = db.insert(WoodminContract.CustomerEntry.TABLE_NAME, null, contentValues);
+                    long _id = db.insertWithOnConflict(WoodminContract.CustomerEntry.TABLE_NAME, null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
                     if ( _id > 0 )
                         returnUri = WoodminContract.CustomerEntry.buildOrderUri(_id);
                     else

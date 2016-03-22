@@ -4,6 +4,13 @@
     <string name="app_name">Woodmin</string>
     <string name="search_hint">Search</string>
 
+    <!-- Notifications String -->
+    <string name="early_sync">Sorry, you need to wait an hour from the last sync to sync again.</string>
+    <string name="start_sync">Synchronization of Customers, Products and Sales Orders in progress.</string>
+    <string name="customer_sync_finish">Customers synchronization complete.</string>
+    <string name="product_sync_finish">Products synchronization complete.</string>
+    <string name="order_sync_finish">Orders synchronization complete.</string>
+
     <!-- Preferences String -->
     <string name="pref_user_key" translatable="false">pref_user</string>
     <string name="pref_secret_key" translatable="false">pref_secret</string>
@@ -38,11 +45,15 @@
 
     <!--Order-->
     <string name="order_title_search">Search order</string>
+    <string name="toast_search_ship">Search order completed %1$s for shipping</string>
     <string name="order_voice_search">order</string>
+    <string name="public_note">Public</string>
+    <string name="private_note">Private</string>
     <string name="customer_information">Customer Information</string>
     <string name="order_payment">Payment</string>
     <string name="order_billing">Billing</string>
     <string name="order_shipping">Shipping</string>
+    <string name="order_note">Notes</string>
     <string name="order_shopping">Shopping Cart</string>
     <string name="order_amount">Amount</string>
     <string name="order_taxes">Taxes</string>

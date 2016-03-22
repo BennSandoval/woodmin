@@ -230,14 +230,14 @@ public class CustomersFragment extends Fragment implements
                             parameters,
                             sortOrder);
                 } else {
-                    String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
-                    String[] parameters = new String[]{ String.valueOf("1") };
+                    //String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
+                    //String[] parameters = new String[]{ String.valueOf("1") };
                     cursorLoader = new CursorLoader(
                             getActivity().getApplicationContext(),
                             costumersUri,
                             CUSTOMER_PROJECTION,
-                            query,
-                            parameters,
+                            null,
+                            null,
                             sortOrder);
                 }
                 break;

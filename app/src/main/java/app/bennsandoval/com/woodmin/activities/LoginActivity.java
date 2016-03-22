@@ -70,7 +70,6 @@ public class LoginActivity extends AppCompatActivity {
 
             //Test instance
 
-
             mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                 @Override
                 public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {

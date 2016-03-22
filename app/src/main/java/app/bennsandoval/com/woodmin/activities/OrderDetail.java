@@ -16,11 +16,21 @@ import android.widget.TextView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
+import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
 import app.bennsandoval.com.woodmin.models.orders.Item;
 import app.bennsandoval.com.woodmin.models.orders.MetaItem;
+import app.bennsandoval.com.woodmin.models.orders.Note;
+import app.bennsandoval.com.woodmin.models.orders.Notes;
 import app.bennsandoval.com.woodmin.models.orders.Order;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
 
 public class OrderDetail extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -148,7 +158,8 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
 
     private void fillView(){
 
-        if(mOrderSelected != null){
+        if(mOrderSelected != null) {
+
             if(mOrderSelected.getStatus().toUpperCase().equals("COMPLETED")){
                 mHeader.setBackgroundColor(getResources().getColor(R.color.primary));
                 mStatus.setTextColor(getResources().getColor(R.color.primary));
@@ -209,7 +220,9 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 mCustomer.setText(getString(R.string.guest));
             }
             mItems.setText(String.valueOf(mOrderSelected.getItems().size()) + " " + getString(R.string.items));
-            mDate.setText(mOrderSelected.getCreatedAt().toString());
+
+            SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.getDefault());
+            mDate.setText(format.format(mOrderSelected.getCreatedAt()));
 
             if(mOrderSelected.getPaymentDetails() != null){
                 mPayment.setText(mOrderSelected.getPaymentDetails().getMethodTitle());
@@ -266,10 +279,54 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
 
                 cart.addView(child);
             }
+            getNotes();
 
         } else {
             finish();
         }
 
+    }
+
+    private void getNotes() {
+        Woocommerce woocommerce = ((Woodmin) getApplication()).getWoocommerceApiHandler();
+        woocommerce.getOrders(null, String.valueOf(mOrderSelected.getId()), new Callback<Notes>() {
+
+            @Override
+            public void success(Notes notes, Response response) {
+
+                SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+                final LinearLayout notesView = (LinearLayout)findViewById(R.id.notes);
+                for(Note note: notes.getNotes()) {
+
+                    final View child = getLayoutInflater().inflate(R.layout.activity_note_item, null);
+                    TextView privateNote = (TextView) child.findViewById(R.id.private_note);
+                    TextView noteText = (TextView) child.findViewById(R.id.note_text);
+                    TextView noteDate = (TextView) child.findViewById(R.id.note_date);
+
+                    if(note.isCustomerNote()) {
+                        privateNote.setText(getString(R.string.public_note));
+                    } else {
+                        privateNote.setText(getString(R.string.private_note));
+                    }
+
+                    noteText.setText(note.getNote());
+                    noteDate.setText(format.format(note.getCreatedAt()));
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            notesView.addView(child);
+                        }
+                    });
+
+                }
+
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+
+            }
+        });
     }
 }

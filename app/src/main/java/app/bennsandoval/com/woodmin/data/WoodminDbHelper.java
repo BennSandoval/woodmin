@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  */
 public class WoodminDbHelper extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 5;
     public static final String DATABASE_NAME = "woodmin.db";
 
     public WoodminDbHelper(Context context) {
@@ -30,11 +30,11 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
                 WoodminContract.ShopEntry.COLUMN_META_CURRENCY_FORMAT + " TEXT, " +
                 WoodminContract.ShopEntry.COLUMN_META_TAXI_INCLUDE + " INTEGER DEFAULT 0 NOT NULL, " +
                 WoodminContract.ShopEntry.COLUMN_META_WEIGHT_UNIT + " TEXT, " +
-                WoodminContract.ShopEntry.COLUMN_META_DIMENSION_UNIT + " TEXT );";
+                WoodminContract.ShopEntry.COLUMN_META_DIMENSION_UNIT + " TEXT);";
 
         final String SQL_CREATE_ORDER_TABLE = "CREATE TABLE " + WoodminContract.OrdersEntry.TABLE_NAME + " (" +
                 WoodminContract.OrdersEntry._ID + " INTEGER PRIMARY KEY, " +
-                WoodminContract.OrdersEntry.COLUMN_ID + " INTEGER, " +
+                WoodminContract.OrdersEntry.COLUMN_ID + " INTEGER NOT NULL UNIQUE, " +
                 WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " TEXT, " +
                 WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
                 WoodminContract.OrdersEntry.COLUMN_UPDATED_AT + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
@@ -112,7 +112,7 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
 
         final String SQL_CREATE_PRODUCT_TABLE = "CREATE TABLE " + WoodminContract.ProductEntry.TABLE_NAME + " (" +
                 WoodminContract.ProductEntry._ID + " INTEGER PRIMARY KEY, " +
-                WoodminContract.ProductEntry.COLUMN_ID + " INTEGER, " +
+                WoodminContract.ProductEntry.COLUMN_ID + " INTEGER NOT NULL UNIQUE, " +
                 WoodminContract.ProductEntry.COLUMN_TITLE + " TEXT, " +
                 WoodminContract.ProductEntry.COLUMN_SKU + " TEXT, " +
                 WoodminContract.ProductEntry.COLUMN_PRICE + " TEXT, " +
@@ -122,7 +122,7 @@ public class WoodminDbHelper extends SQLiteOpenHelper {
 
         final String SQL_CREATE_CONSUMER_TABLE = "CREATE TABLE " + WoodminContract.CustomerEntry.TABLE_NAME + " (" +
                 WoodminContract.CustomerEntry._ID + " INTEGER PRIMARY KEY, " +
-                WoodminContract.CustomerEntry.COLUMN_ID + " INTEGER, " +
+                WoodminContract.CustomerEntry.COLUMN_ID + " INTEGER NOT NULL UNIQUE, " +
                 WoodminContract.CustomerEntry.COLUMN_EMAIL + " TEXT, " +
                 WoodminContract.CustomerEntry.COLUMN_FIRST_NAME + " TEXT, " +
                 WoodminContract.CustomerEntry.COLUMN_LAST_NAME + " TEXT, " +

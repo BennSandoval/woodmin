@@ -4,11 +4,13 @@ import java.util.Map;
 
 import app.bennsandoval.com.woodmin.models.customers.Customers;
 import app.bennsandoval.com.woodmin.models.orders.Count;
+import app.bennsandoval.com.woodmin.models.orders.Notes;
 import app.bennsandoval.com.woodmin.models.orders.Orders;
 import app.bennsandoval.com.woodmin.models.products.Products;
 import app.bennsandoval.com.woodmin.models.shop.Shop;
 import retrofit.Callback;
 import retrofit.http.GET;
+import retrofit.http.Path;
 import retrofit.http.QueryMap;
 
 public interface Woocommerce {
@@ -22,6 +24,11 @@ public interface Woocommerce {
     @GET("/orders")
     void getOrders(@QueryMap Map<String, String> options,
                    Callback<Orders> orders);
+
+    @GET("/orders/{orderId}/notes")
+    void getOrders(@QueryMap Map<String, String> options,
+                   @Path("orderId") String orderId,
+                   Callback<Notes> notes);
 
     @GET("/products/count")
     void countProducts(Callback<Count> productsCount);
