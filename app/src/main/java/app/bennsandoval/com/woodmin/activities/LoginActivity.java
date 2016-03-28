@@ -20,24 +20,16 @@ import android.widget.TextView;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.squareup.okhttp.OkHttpClient;
-
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLHandshakeException;
 
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
 import app.bennsandoval.com.woodmin.models.shop.Shop;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 import app.bennsandoval.com.woodmin.utilities.Utility;
-import retrofit.Callback;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.OkClient;
-import retrofit.client.Response;
-import retrofit.converter.GsonConverter;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -49,8 +41,6 @@ public class LoginActivity extends AppCompatActivity {
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-
-    private Gson gson = new GsonBuilder().create();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +58,6 @@ public class LoginActivity extends AppCompatActivity {
             mUserView = (EditText) findViewById(R.id.user);
             mPasswordView = (EditText) findViewById(R.id.password);
 
-            //Test instance
 
             mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                 @Override
@@ -179,80 +168,49 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    public void userLogin (final String server, final String user, final String password){
+    public void userLogin (String server, String user, String password){
 
         showProgress(true);
+        Utility.setPreferredServer(getApplicationContext(), server);
+        Utility.setPreferredUserSecret(getApplicationContext(), user, password);
 
-        final String authenticationHeader = "Basic " + Base64.encodeToString(
-                (user + ":" + password).getBytes(),
-                Base64.NO_WRAP);
-
-        RequestInterceptor requestInterceptor = new RequestInterceptor() {
+        Woocommerce woocommerceApi = ((Woodmin) getApplication()).getWoocommerceApiHandler();
+        Call<Shop> call = woocommerceApi.getShop();
+        call.enqueue(new Callback<Shop>() {
             @Override
-            public void intercept(RequestInterceptor.RequestFacade request) {
-                request.addHeader("Authorization", authenticationHeader);
-                request.addHeader("Accept" , "application/json");
-                request.addHeader("Content-Type" , "application/json");
-            }
-        };
+            public void onResponse(Call<Shop> call, Response<Shop> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    showProgress(false);
 
-        OkHttpClient client = new OkHttpClient();
-        client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
-        client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
-        client.setCache(null);
-        if(Utility.getSSLSocketFactory() != null){
-            client.setSslSocketFactory(Utility.getSSLSocketFactory());
-            client.setHostnameVerifier(Utility.getHostnameVerifier());
-        }
+                    WoodminSyncAdapter.initializeSyncAdapter(getApplicationContext());
+                    WoodminSyncAdapter.syncImmediately(getApplicationContext());
 
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(server+"/wc-api/v2")
-                .setClient(new OkClient(client))
-                .setConverter(new GsonConverter(gson))
-                .setRequestInterceptor(requestInterceptor)
-                .build();
+                    Intent main = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(main);
+                    finish();
+                } else {
+                    showProgress(false);
+                    mUserView.setError(getString(R.string.error_incorrect));
+                    mPasswordView.setError(getString(R.string.error_incorrect));
+                    mServerView.setError(getString(R.string.error_incorrect));
+                    mServerView.requestFocus();
 
-        Woocommerce woocommerceApi = restAdapter.create(Woocommerce.class);
-        woocommerceApi.getShop(new Callback<Shop>() {
-            @Override
-            public void success(Shop shop, Response response) {
-                showProgress(false);
-
-                Utility.setPreferredServer(getApplicationContext(), server);
-                Utility.setPreferredUserSecret(getApplicationContext(),user, password);
-
-                WoodminSyncAdapter.initializeSyncAdapter(getApplicationContext());
-                WoodminSyncAdapter.syncImmediately(getApplicationContext());
-
-                Intent main = new Intent(getApplicationContext(), MainActivity.class);
-                startActivity(main);
-                finish();
+                    Utility.setPreferredServer(getApplicationContext(), null);
+                    Utility.setPreferredUserSecret(getApplicationContext(), null, null);
+                }
             }
 
             @Override
-            public void failure(RetrofitError error) {
-
+            public void onFailure(Call<Shop> call, Throwable t) {
                 showProgress(false);
                 mUserView.setError(getString(R.string.error_incorrect));
                 mPasswordView.setError(getString(R.string.error_incorrect));
                 mServerView.setError(getString(R.string.error_incorrect));
                 mServerView.requestFocus();
 
-                Log.v(LOG_TAG,"Shop sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG,"SSLHandshakeException Shop sync");
-                } else if (error.getResponse()==null) {
-                    Log.e(LOG_TAG,"Not response error Shop sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG,httpCode + " error Shop sync");
-                    switch (httpCode){
-                        case 401:
-                            break;
-                        default:
-                            break;
-                    }
-                }
+                Utility.setPreferredServer(getApplicationContext(), null);
+                Utility.setPreferredUserSecret(getApplicationContext(), null, null);
             }
         });
     }

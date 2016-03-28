@@ -107,7 +107,11 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerC
                 WoodminSyncAdapter.disablePeriodSync(getApplicationContext());
                 WoodminSyncAdapter.removeAccount(getApplicationContext());
 
-                Utility.setPreferredServer(getApplicationContext(),null);
+                //Remove Preferences
+                Utility.setPreferredServer(getApplicationContext(), null);
+                Utility.setPreferredLastSync(getApplicationContext(), 0L);
+                Utility.setPreferredUserSecret(getApplicationContext(), null, null);
+
                 Intent main = new Intent(getApplicationContext(), LoginActivity.class);
                 startActivity(main);
                 finish();

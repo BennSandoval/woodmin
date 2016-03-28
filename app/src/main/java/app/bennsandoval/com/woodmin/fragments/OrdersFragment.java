@@ -28,11 +28,9 @@ import android.widget.Toast;
 
 import com.google.android.gms.actions.SearchIntents;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;

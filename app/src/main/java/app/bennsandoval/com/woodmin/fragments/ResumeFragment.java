@@ -24,6 +24,7 @@ import com.google.gson.GsonBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -133,18 +134,27 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
         Log.d(LOG_TAG, "onCreateLoader");
 
         String sortOrder = WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER + " DESC";
-        String sortProduct = WoodminContract.ProductEntry.COLUMN_STOCK + " ASC";
+        String sortProduct = WoodminContract.ProductEntry.COLUMN_STOCK + " ASC LIMIT 3";
         CursorLoader cursorLoader;
         Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
         Uri productsUri = WoodminContract.ProductEntry.CONTENT_URI;
         switch (id) {
             case ORDER_LOADER:
+                Date today = new Date();
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(today);
+                calendar.add(Calendar.DAY_OF_MONTH, -4);
+                Date threeDaysBack = calendar.getTime();
+
+                String query = WoodminContract.OrdersEntry.COLUMN_CREATED_AT + " BETWEEN ? AND ?";
+                String[] parameters = new String[]{WoodminContract.getDbDateString(threeDaysBack), WoodminContract.getDbDateString(today)};
+
                 cursorLoader = new CursorLoader(
                         getActivity().getApplicationContext(),
                         ordersUri,
                         ORDER_PROJECTION,
-                        null,
-                        null,
+                        query,
+                        parameters,
                         sortOrder);
                 break;
             case PRODUCT_LOADER:
@@ -180,7 +190,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                     Resume resume = new Resume();
                     resume.setTitle("SALES");
 
-                    String date = null;
+                    String lastDateAnalyzed = null;
                     int items = 0;
                     float total = 0;
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy");
@@ -189,10 +199,10 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                         if(json!=null){
                             Order order = mGson.fromJson(json, Order.class);
 
-                            if(date != null && !simpleDateFormat.format(order.getCreatedAt()).equals(date) && isAdded()){
+                            if(lastDateAnalyzed != null && !simpleDateFormat.format(order.getCreatedAt()).equals(lastDateAnalyzed) && isAdded()){
 
                                 DataResume resumeDay = new DataResume();
-                                resumeDay.setField1(date);
+                                resumeDay.setField1(lastDateAnalyzed);
                                 resumeDay.setField2(items + " " + getString(R.string.items));
                                 resumeDay.setField3("$"+total);
                                 resume.getData().add(resumeDay);
@@ -205,11 +215,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                                 total += Float.valueOf(order.getTotal());
                             }
 
-                            date = simpleDateFormat.format(order.getCreatedAt());
-
-                            if (resume.getData().size() == 3){
-                                break;
-                            }
+                            lastDateAnalyzed = simpleDateFormat.format(order.getCreatedAt());
 
                         }
                     } while (cursor.moveToNext());
@@ -254,7 +260,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                     mResume.add(resume);
                     mAdapter.notifyDataSetChanged();
                 }
-                if(mSwipeLayout != null){
+                if(mSwipeLayout != null) {
                     mSwipeLayout.setRefreshing(false);
                 }
                 break;

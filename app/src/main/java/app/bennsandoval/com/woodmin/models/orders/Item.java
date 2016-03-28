@@ -22,6 +22,10 @@ public class Item {
     private int productId;
     private String sku;
     private List<MetaItem> meta;
+    @SerializedName("cogs_cost")
+    private String cogsCost;
+    @SerializedName("cogs_total_cost")
+    private String cogsTotalCost;
 
     public int getId() {
         return id;
@@ -118,4 +122,21 @@ public class Item {
     public void setMeta(List<MetaItem> meta) {
         this.meta = meta;
     }
+
+    public String getCogsCost() {
+        return cogsCost;
+    }
+
+    public void setCogsCost(String cogsCost) {
+        this.cogsCost = cogsCost;
+    }
+
+    public String getCogsTotalCost() {
+        return cogsTotalCost;
+    }
+
+    public void setCogsTotalCost(String cogsTotalCost) {
+        this.cogsTotalCost = cogsTotalCost;
+    }
+
 }

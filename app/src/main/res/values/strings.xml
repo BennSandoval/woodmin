@@ -67,9 +67,9 @@
     <string name="product_voice_search">product</string>
     <string name="product_title_search">Search product</string>
     <string name="description_product">Description</string>
-    <string name="price">PRICE</string>
-    <string name="stock">STOCK</string>
-    <string name="units">UNITS</string>
+    <string name="price_const">Price: $%1$s Cost: $%2$s</string>
+    <string name="price">Price: $%1$s</string>
+    <string name="stock">Stock: $%1$s Units</string>
 
     <!--Customer-->
     <string name="customer_voice_search">customer</string>

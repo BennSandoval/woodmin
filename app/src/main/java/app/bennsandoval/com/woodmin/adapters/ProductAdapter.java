@@ -69,10 +69,14 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
             }
 
             holder.txtName.setText(product.getTitle());
-            holder.txtPrice.setText(mContext.getString(R.string.price) + " $" + product.getPrice());
-            holder.txtStock.setText(mContext.getString(R.string.stock) + ": " + product.getStockQuantity() + " " + mContext.getString(R.string.units));
+            if(product.getCogsCost() != null) {
+                holder.txtPrice.setText(mContext.getString(R.string.price_const, product.getPrice(), product.getCogsCost()));
+            } else {
+                holder.txtPrice.setText(mContext.getString(R.string.price, product.getPrice()));
+            }
+            holder.txtStock.setText(mContext.getString(R.string.stock, product.getStockQuantity()));
 
-            String description = product.getDescription().replaceAll("\\<.*?>","");
+            String description = product.getShortDescription().replaceAll("\\<.*?>","");
             description = description.replaceAll("[\\t\\n\\r]"," ");
             description = description.replaceAll("&nbsp;"," ");
 

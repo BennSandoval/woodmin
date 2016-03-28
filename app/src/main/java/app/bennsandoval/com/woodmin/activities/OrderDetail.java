@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
@@ -28,9 +29,9 @@ import app.bennsandoval.com.woodmin.models.orders.MetaItem;
 import app.bennsandoval.com.woodmin.models.orders.Note;
 import app.bennsandoval.com.woodmin.models.orders.Notes;
 import app.bennsandoval.com.woodmin.models.orders.Order;
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class OrderDetail extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -288,45 +289,51 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
     }
 
     private void getNotes() {
-        Woocommerce woocommerce = ((Woodmin) getApplication()).getWoocommerceApiHandler();
-        woocommerce.getOrders(null, String.valueOf(mOrderSelected.getId()), new Callback<Notes>() {
+
+        Woocommerce woocommerceApi = ((Woodmin) getApplication()).getWoocommerceApiHandler();
+        HashMap<String, String> options = new HashMap<>();
+        Call<Notes> call = woocommerceApi.getOrdersNotes(options, String.valueOf(mOrderSelected.getId()));
+        call.enqueue(new Callback<Notes>() {
 
             @Override
-            public void success(Notes notes, Response response) {
+            public void onResponse(Call<Notes> call, Response<Notes> response) {
 
-                SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
-                final LinearLayout notesView = (LinearLayout)findViewById(R.id.notes);
-                for(Note note: notes.getNotes()) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+                    final LinearLayout notesView = (LinearLayout) findViewById(R.id.notes);
+                    for (Note note : response.body().getNotes()) {
 
-                    final View child = getLayoutInflater().inflate(R.layout.activity_note_item, null);
-                    TextView privateNote = (TextView) child.findViewById(R.id.private_note);
-                    TextView noteText = (TextView) child.findViewById(R.id.note_text);
-                    TextView noteDate = (TextView) child.findViewById(R.id.note_date);
+                        final View child = getLayoutInflater().inflate(R.layout.activity_note_item, null);
+                        TextView privateNote = (TextView) child.findViewById(R.id.private_note);
+                        TextView noteText = (TextView) child.findViewById(R.id.note_text);
+                        TextView noteDate = (TextView) child.findViewById(R.id.note_date);
 
-                    if(note.isCustomerNote()) {
-                        privateNote.setText(getString(R.string.public_note));
-                    } else {
-                        privateNote.setText(getString(R.string.private_note));
-                    }
-
-                    noteText.setText(note.getNote());
-                    noteDate.setText(format.format(note.getCreatedAt()));
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            notesView.addView(child);
+                        if (note.isCustomerNote()) {
+                            privateNote.setText(getString(R.string.public_note));
+                        } else {
+                            privateNote.setText(getString(R.string.private_note));
                         }
-                    });
 
+                        noteText.setText(note.getNote());
+                        noteDate.setText(format.format(note.getCreatedAt()));
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                notesView.addView(child);
+                            }
+                        });
+
+                    }
                 }
-
             }
 
             @Override
-            public void failure(RetrofitError error) {
-
+            public void onFailure(Call<Notes> call, Throwable throwable) {
+                Log.e(LOG_TAG, "onFailure ");
             }
+
         });
     }
 }

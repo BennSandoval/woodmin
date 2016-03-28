@@ -95,7 +95,8 @@ public class Product {
     private int totalSales;
     private List<Variation> variations;
     //"parent": []
-
+    @SerializedName("cogs_cost")
+    private String cogsCost;
 
     public String getTitle() {
         return title;
@@ -527,5 +528,13 @@ public class Product {
 
     public void setVariations(List<Variation> variations) {
         this.variations = variations;
+    }
+
+    public String getCogsCost() {
+        return cogsCost;
+    }
+
+    public void setCogsCost(String cogsCost) {
+        this.cogsCost = cogsCost;
     }
 }

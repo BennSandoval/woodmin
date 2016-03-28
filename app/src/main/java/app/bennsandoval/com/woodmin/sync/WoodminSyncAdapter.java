@@ -26,15 +26,13 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.squareup.okhttp.OkHttpClient;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLHandshakeException;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
@@ -48,13 +46,14 @@ import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.models.products.Products;
 import app.bennsandoval.com.woodmin.models.shop.Shop;
 import app.bennsandoval.com.woodmin.utilities.Utility;
-import retrofit.Callback;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.OkClient;
-import retrofit.client.Response;
-import retrofit.converter.GsonConverter;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
@@ -95,35 +94,46 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 (user + ":" + accountManager.getPassword(account)).getBytes(),
                 Base64.NO_WRAP);
 
-        RequestInterceptor requestInterceptor = new RequestInterceptor() {
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(60000, TimeUnit.MILLISECONDS)
+                .readTimeout(60000, TimeUnit.MILLISECONDS)
+                .cache(null);
+
+        //TODO Remove this if you don't have a self cert
+        /*
+        if(Utility.getSSLSocketFactory() != null){
+            clientBuilder
+                    .sslSocketFactory(Utility.getSSLSocketFactory())
+                    .hostnameVerifier(Utility.getHostnameVerifier());
+        }
+        */
+
+        Interceptor basicAuthenticatorInterceptor = new Interceptor() {
             @Override
-            public void intercept(RequestInterceptor.RequestFacade request) {
-                request.addHeader("Authorization", authenticationHeader);
-                request.addHeader("Accept" , "application/json");
-                request.addHeader("Content-Type" , "application/json");
+            public Response intercept(Chain chain) throws IOException {
+                Request request = chain.request();
+                Request authenticateRequest = request.newBuilder()
+                        .addHeader("Authorization", authenticationHeader)
+                        .addHeader("Accept", "application/json")
+                        .addHeader("Content-Type", "application/json")
+                        .build();
+                return chain.proceed(authenticateRequest);
             }
         };
 
-        OkHttpClient client = new OkHttpClient();
-        client.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
-        client.setReadTimeout(60000, TimeUnit.MILLISECONDS);
-        client.setCache(null);
-
-        //TODO Remove this if you don't have a self cert
-        if(Utility.getSSLSocketFactory() != null){
-            client.setSslSocketFactory(Utility.getSSLSocketFactory());
-            client.setHostnameVerifier(Utility.getHostnameVerifier());
-        }
+        //OkHttpOAuthConsumer consumer = new OkHttpOAuthConsumer(key, secret);
+        //consumer.setSigningStrategy(new QueryStringSigningStrategy());
+        //clientBuilder.addInterceptor(new SigningInterceptor(consumer));
+        clientBuilder.addInterceptor(basicAuthenticatorInterceptor);
 
         String server = Utility.getPreferredServer(getContext());
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(server + "/wc-api/v3")
-                .setClient(new OkClient(client))
-                .setConverter(new GsonConverter(gson))
-                .setRequestInterceptor(requestInterceptor)
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(server)
+                .client(clientBuilder.build())
+                .addConverterFactory(GsonConverterFactory.create(new GsonBuilder().create()))
                 .build();
 
-        woocommerceApi = restAdapter.create(Woocommerce.class);
+        woocommerceApi = retrofit.create(Woocommerce.class);
 
         boolean syncAll = false;
         if(lastSyncTimeStamp != 0) {
@@ -137,6 +147,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         if(syncAll) {
+            Date lastSync = new Date(lastSyncTimeStamp);
+            if(lastSyncTimeStamp == 0) {
+                lastSync = null;
+            }
             //Shop
             Handler handler = new Handler(Looper.getMainLooper());
             Runnable runnableShop = new Runnable() {
@@ -147,9 +161,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             handler.post(runnableShop);
 
             //Products
+            final Date finalLastSync = lastSync;
             Runnable runnableProducts = new Runnable() {
                 public void run() {
-                    synchronizeProducts(null);
+                    synchronizeProducts(finalLastSync);
                 }
             };
             handler.post(runnableProducts);
@@ -157,7 +172,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             //Orders
             Runnable runnableOrders = new Runnable() {
                 public void run() {
-                    synchronizeOrders(null);
+                    synchronizeOrders(finalLastSync);
                 }
             };
             handler.post(runnableOrders);
@@ -165,10 +180,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             //Customers
             Runnable runnableCustomers = new Runnable() {
                 public void run() {
-                    synchronizeCustomers(null);
+                    synchronizeCustomers(finalLastSync);
                 }
             };
             handler.post(runnableCustomers);
+
         } else {
             Log.d(LOG_TAG, "Synchronization to early");
             final Date lastSync = new Date(lastSyncTimeStamp);
@@ -226,44 +242,39 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeCustomers(final Date date) {
         Log.v(LOG_TAG, "Customers sync start");
         if(date == null) {
-            woocommerceApi.countCustomers(new Callback<Count>() {
 
+            Call<Count> call = woocommerceApi.countCustomers();
+            call.enqueue(new Callback<Count>() {
                 @Override
-                public void success(Count count, Response response) {
+                public void onResponse(Call<Count> call, retrofit2.Response<Count> response) {
 
-                    try {
-                        sizeCustomers = Integer.valueOf(count.getCount());
-                    } catch (NumberFormatException exception) {
-                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                    int statusCode = response.code();
+                    if (statusCode == 200) {
+                        try {
+                            sizeCustomers = Integer.valueOf(response.body().getCount());
+                        } catch (NumberFormatException exception) {
+                            Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                        }
+
+                        /*
+                        ContentValues values = new ContentValues();
+                        values.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 0);
+                        int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.CustomerEntry.CONTENT_URI, values, null, null);
+                        Log.v(LOG_TAG, "Customers " + ordersRowsDisabled + " disabled");
+                        Log.v(LOG_TAG, "Customers " + sizeOrders + " to sync");
+                        */
+
+                        synchronizeBatchCustomers(date);
                     }
-                    ContentValues values = new ContentValues();
-                    values.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 0);
-                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.CustomerEntry.CONTENT_URI, values, null, null);
-                    Log.v(LOG_TAG, "Customers " + ordersRowsDisabled + " disabled");
-                    Log.v(LOG_TAG, "Customers " + sizeOrders + " to sync");
-                    synchronizeBatchCustomers(date);
 
                 }
 
                 @Override
-                public void failure(RetrofitError error) {
-                    Log.e(LOG_TAG, "Products sync error");
-                    if (error.getCause() instanceof SSLHandshakeException) {
-                        Log.e(LOG_TAG, "SSLHandshakeException Products sync");
-                    } else if (error.getResponse() == null) {
-                        Log.e(LOG_TAG, "Not response error Products sync");
-                    } else {
-                        int httpCode = error.getResponse().getStatus();
-                        Log.e(LOG_TAG, httpCode + " error Products sync");
-                        switch (httpCode) {
-                            case 401:
-                                break;
-                            default:
-                                break;
-                        }
-                    }
+                public void onFailure(Call<Count> call, Throwable t) {
+
                 }
             });
+
         } else {
             synchronizeBatchCustomers(date);
         }
@@ -271,7 +282,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void synchronizeBatchCustomers(final Date date) {
 
-        Log.v(LOG_TAG,"Customers Total:" + sizeCustomers + " Current: " + pageCustomer * sizePageCustomer + " Page : " + pageCustomer);
+        Log.v(LOG_TAG, "Customers Total:" + sizeCustomers + " Current: " + pageCustomer * sizePageCustomer + " Page : " + pageCustomer);
 
         HashMap<String, String> options = new HashMap<>();
         options.put("filter[limit]", String.valueOf(sizePageCustomer));
@@ -281,73 +292,60 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         }
         options.put("page", String.valueOf(pageCustomer));
 
-        woocommerceApi.getCustomers(options, new Callback<Customers>() {
+        Call<Customers> call = woocommerceApi.getCustomers(options);
+        call.enqueue(new Callback<Customers>() {
             @Override
-            public void success(Customers customers, Response response) {
-                Log.v(LOG_TAG, "Sucess page Customer " + pageCustomer);
+            public void onResponse(Call<Customers> call, retrofit2.Response<Customers> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    Log.v(LOG_TAG, "Success page Customer " + pageCustomer);
+                    ArrayList<ContentValues> customersValues = new ArrayList<ContentValues>();
+                    for (Customer customer : response.body().getCustomers()) {
 
-                ArrayList<ContentValues> customersValues = new ArrayList<ContentValues>();
-                for (Customer customer : customers.getCustomers()) {
+                        ContentValues customerValues = new ContentValues();
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_ID, customer.getId());
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_EMAIL, customer.getEmail());
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_FIRST_NAME, customer.getFirstName());
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_NAME, customer.getLastName());
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_USERNAME, customer.getUsername());
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_ORDER_ID, customer.getLastOrderId());
 
-                    ContentValues customerValues = new ContentValues();
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_ID, customer.getId());
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_EMAIL, customer.getEmail());
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_FIRST_NAME, customer.getFirstName());
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_NAME, customer.getLastName());
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_USERNAME, customer.getUsername());
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_ORDER_ID, customer.getLastOrderId());
-
-                    if (customer.getBillingAddress() != null) {
-                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_FIRST_NAME, customer.getBillingAddress().getFirstName());
-                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_LAST_NAME, customer.getBillingAddress().getLastName());
-                        if (customer.getBillingAddress().getPhone() != null) {
-                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE, customer.getBillingAddress().getPhone());
+                        if (customer.getBillingAddress() != null) {
+                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_FIRST_NAME, customer.getBillingAddress().getFirstName());
+                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_LAST_NAME, customer.getBillingAddress().getLastName());
+                            if (customer.getBillingAddress().getPhone() != null) {
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE, customer.getBillingAddress().getPhone());
+                            }
                         }
-                    }
-                    if (customer.getShippingAddress() != null) {
-                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_FIRST_NAME, customer.getShippingAddress().getFirstName());
-                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME, customer.getShippingAddress().getLastName());
-                        if (customer.getShippingAddress().getPhone() != null) {
-                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE, customer.getShippingAddress().getPhone());
+                        if (customer.getShippingAddress() != null) {
+                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_FIRST_NAME, customer.getShippingAddress().getFirstName());
+                            customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME, customer.getShippingAddress().getLastName());
+                            if (customer.getShippingAddress().getPhone() != null) {
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE, customer.getShippingAddress().getPhone());
+                            }
                         }
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_JSON, gson.toJson(customer));
+                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 1);
+
+                        customersValues.add(customerValues);
                     }
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_JSON, gson.toJson(customer));
-                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 1);
 
-                    customersValues.add(customerValues);
-                }
+                    ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
+                    customersValuesArray = customersValues.toArray(customersValuesArray);
+                    int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
+                    Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
 
-                ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
-                customersValuesArray = customersValues.toArray(customersValuesArray);
-                int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
-                Log.v(LOG_TAG,"Customers " + customersRowsUpdated + " updated");
-
-                if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
-                    pageCustomer++;
-                    synchronizeBatchCustomers(date);
-                } else {
-                    finalizeSyncCustomers();
+                    if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
+                        pageCustomer++;
+                        synchronizeBatchCustomers(date);
+                    } else {
+                        finalizeSyncCustomers();
+                    }
                 }
             }
 
             @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Customers sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG, "SSLHandshakeException Customers sync");
-                } else if (error.getResponse() == null) {
-                    Log.e(LOG_TAG, "Not response error Customers sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG, httpCode + " error Customers sync");
-                    switch (httpCode) {
-                        case 401:
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
+            public void onFailure(Call<Customers> call, Throwable t) {
                 if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
                     pageCustomer++;
                     synchronizeBatchCustomers(date);
@@ -382,12 +380,15 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
+        /*
         String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.CustomerEntry.CONTENT_URI,
                 query,
                 parameters);
         Log.d(LOG_TAG, "Customers: " + rowsDeleted + " old records deleted.");
+        */
+
         getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
         pageCustomer = 0;
     }
@@ -395,45 +396,37 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeProducts(final Date date) {
         Log.v(LOG_TAG, "Products sync start");
         if(date == null) {
-            woocommerceApi.countProducts(new Callback<Count>() {
 
+            Call<Count> call = woocommerceApi.countProducts();
+            call.enqueue(new Callback<Count>() {
                 @Override
-                public void success(Count count, Response response) {
+                public void onResponse(Call<Count> call, retrofit2.Response<Count> response) {
+                    int statusCode = response.code();
+                    if (statusCode == 200) {
+                        try {
+                            sizeProducts = Integer.valueOf(response.body().getCount());
+                        } catch (NumberFormatException exception) {
+                            Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                        }
 
-                    try {
-                        sizeProducts = Integer.valueOf(count.getCount());
-                    } catch (NumberFormatException exception) {
-                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                        /*
+                        ContentValues values = new ContentValues();
+                        values.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 0);
+                        int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.ProductEntry.CONTENT_URI, values, null, null);
+                        Log.v(LOG_TAG, "Products " + ordersRowsDisabled + " disabled");
+                        Log.v(LOG_TAG, "Products " + sizeOrders + " to sync");
+                        */
+
+                        synchronizeBatchProducts(date);
                     }
-                    ContentValues values = new ContentValues();
-                    values.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 0);
-                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.ProductEntry.CONTENT_URI, values, null, null);
-                    Log.v(LOG_TAG, "Products " + ordersRowsDisabled + " disabled");
-                    Log.v(LOG_TAG, "Products " + sizeOrders + " to sync");
-
-                    synchronizeBatchProducts(date);
-
                 }
 
                 @Override
-                public void failure(RetrofitError error) {
-                    Log.e(LOG_TAG, "Products sync error");
-                    if (error.getCause() instanceof SSLHandshakeException) {
-                        Log.e(LOG_TAG, "SSLHandshakeException Products sync");
-                    } else if (error.getResponse() == null) {
-                        Log.e(LOG_TAG, "Not response error Products sync");
-                    } else {
-                        int httpCode = error.getResponse().getStatus();
-                        Log.e(LOG_TAG, httpCode + " error Products sync");
-                        switch (httpCode) {
-                            case 401:
-                                break;
-                            default:
-                                break;
-                        }
-                    }
+                public void onFailure(Call<Count> call, Throwable t) {
+
                 }
             });
+
         } else {
             synchronizeBatchProducts(date);
         }
@@ -451,58 +444,46 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         options.put("page", String.valueOf(pageProduct));
         options.put("filter[post_status]", "any");
 
-        woocommerceApi.getProducts(options, new Callback<Products>() {
+        Call<Products> call = woocommerceApi.getProducts(options);
+        call.enqueue(new Callback<Products>() {
             @Override
-            public void success(Products products, Response response) {
-                Log.v(LOG_TAG, "Sucess page Product " + pageProduct);
+            public void onResponse(Call<Products> call, retrofit2.Response<Products> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    Log.v(LOG_TAG, "Success page Product " + pageProduct);
 
-                ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
-                for (Product product : products.getProducts()) {
+                    ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
+                    for (Product product : response.body().getProducts()) {
 
-                    ContentValues productValues = new ContentValues();
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
-                    productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+                        ContentValues productValues = new ContentValues();
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
+                        productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
 
-                    productsValues.add(productValues);
+                        productsValues.add(productValues);
 
-                }
+                    }
 
-                ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
-                productsValuesArray = productsValues.toArray(productsValuesArray);
-                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
-                Log.v(LOG_TAG,"Products " + ordersRowsUpdated + " updated");
+                    ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+                    productsValuesArray = productsValues.toArray(productsValuesArray);
+                    int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+                    Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
 
-                if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
-                    pageProduct++;
-                    synchronizeBatchProducts(date);
-                } else {
-                    finalizeSyncProducts();
+                    if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
+                        pageProduct++;
+                        synchronizeBatchProducts(date);
+                    } else {
+                        finalizeSyncProducts();
+                    }
                 }
             }
 
             @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Products sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG, "SSLHandshakeException Products sync");
-                } else if (error.getResponse() == null) {
-                    Log.e(LOG_TAG, "Not response error Products sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG, httpCode + " error Products sync");
-                    switch (httpCode) {
-                        case 401:
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
+            public void onFailure(Call<Products> call, Throwable t) {
                 if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
                     pageProduct++;
                     synchronizeBatchProducts(date);
@@ -537,12 +518,15 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
+        /*
         String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.ProductEntry.CONTENT_URI,
                 query,
                 parameters);
         Log.d(LOG_TAG, "Products: " + rowsDeleted + " old records deleted.");
+        */
+
         getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
         pageProduct = 0;
     }
@@ -550,46 +534,36 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeOrders(final Date date) {
         Log.v(LOG_TAG, "Orders sync start");
         if(date == null) {
-            woocommerceApi.countOrders(new Callback<Count>() {
-
+            Call<Count> call = woocommerceApi.countCustomers();
+            call.enqueue(new Callback<Count>() {
                 @Override
-                public void success(Count count, Response response) {
+                public void onResponse(Call<Count> call, retrofit2.Response<Count> response) {
+                    int statusCode = response.code();
+                    if (statusCode == 200) {
+                        try {
+                            sizeOrders = Integer.valueOf(response.body().getCount());
+                        } catch (NumberFormatException exception) {
+                            Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                        }
 
-                    try {
-                        sizeOrders = Integer.valueOf(count.getCount());
-                    } catch (NumberFormatException exception) {
-                        Log.e(LOG_TAG, "NumberFormatException " + exception.getMessage());
+                        /*
+                        ContentValues values = new ContentValues();
+                        values.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 0);
+                        int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.OrdersEntry.CONTENT_URI, values, null, null);
+                        Log.v(LOG_TAG, "Orders " + ordersRowsDisabled + " disabled");
+                        Log.v(LOG_TAG, "Orders " + sizeOrders + " to sync");
+                        */
+
+                        synchronizeBatchOrders(date);
                     }
-
-                    ContentValues values = new ContentValues();
-                    values.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 0);
-                    int ordersRowsDisabled = getContext().getContentResolver().update(WoodminContract.OrdersEntry.CONTENT_URI, values, null, null);
-                    Log.v(LOG_TAG, "Orders " + ordersRowsDisabled + " disabled");
-                    Log.v(LOG_TAG, "Orders " + sizeOrders + " to sync");
-
-                    synchronizeBatchOrders(date);
-
                 }
 
                 @Override
-                public void failure(RetrofitError error) {
-                    Log.e(LOG_TAG, "Orders sync error");
-                    if (error.getCause() instanceof SSLHandshakeException) {
-                        Log.e(LOG_TAG, "SSLHandshakeException Orders sync");
-                    } else if (error.getResponse() == null) {
-                        Log.e(LOG_TAG, "Not response error Orders sync");
-                    } else {
-                        int httpCode = error.getResponse().getStatus();
-                        Log.e(LOG_TAG, httpCode + " error Orders sync");
-                        switch (httpCode) {
-                            case 401:
-                                break;
-                            default:
-                                break;
-                        }
-                    }
+                public void onFailure(Call<Count> call, Throwable t) {
+
                 }
             });
+
         } else {
             synchronizeBatchOrders(date);
         }
@@ -599,146 +573,134 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.v(LOG_TAG,"Orders Read Total:" + sizeOrders + " Current: " + pageOrder * sizePageOrders + " Page : " + pageOrder);
 
         HashMap<String, String> options = new HashMap<>();
-        options.put("status","any");
+        options.put("status", "any");
         options.put("filter[limit]", String.valueOf(sizePageOrders));
         if(date != null) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             options.put("filter[updated_at_min]", dateFormat.format(date));
         }
-        options.put("page",String.valueOf(pageOrder));
+        options.put("page", String.valueOf(pageOrder));
 
-        woocommerceApi.getOrders(options, new Callback<Orders>() {
+        Call<Orders> call = woocommerceApi.getOrders(options);
+        call.enqueue(new Callback<Orders>() {
             @Override
-            public void success(Orders orders, Response response) {
-                Log.v(LOG_TAG,"Success page Order " + pageOrder);
-                ArrayList<ContentValues> ordersValues = new ArrayList<>();
+            public void onResponse(Call<Orders> call, retrofit2.Response<Orders> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    Log.v(LOG_TAG,"Success page Order " + pageOrder);
+                    ArrayList<ContentValues> ordersValues = new ArrayList<>();
 
-                for(Order order:orders.getOrders()) {
+                    for(Order order:response.body().getOrders()) {
 
-                    ContentValues orderValues = new ContentValues();
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
-                    if(order.getCreatedAt() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
-                    }
-                    if(order.getUpdatedAt() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
-                    }
-                    if(order.getCompletedAt() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
-                    }
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SUBTOTAL, order.getSubtotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getTotalLineItemsQuantity());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_TAX, order.getTotalTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getTotalShipping());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_TAX, order.getCartTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_TAX, order.getShippingTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getTotalDiscount());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_DISCOUNT, order.getCartDiscount());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_DISCOUNT, order.getOrderDiscount());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingMethods());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_NOTE, order.getNote());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_VIEW_ORDER_URL, order.getViewOrderUrl());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentDetails().getMethodId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME , order.getBillingAddress().getLastName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_CITY, order.getBillingAddress().getCity());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_STATE, order.getBillingAddress().getState());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_POSTCODE, order.getBillingAddress().getPostcode());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COUNTRY, order.getBillingAddress().getCountry());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_EMAIL, order.getBillingAddress().getEmail());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_PHONE, order.getBillingAddress().getPhone());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID, order.getCustomerId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getCustomer().getEmail());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getCustomer().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
-                    if(order.getCustomer().getLastOrderDate() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
-                    }
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
-                    if(order.getCustomer().getBillingAddress()!= null){
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getCustomer().getBillingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getCustomer().getBillingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getCustomer().getBillingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getCustomer().getBillingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getCustomer().getBillingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getCustomer().getBillingAddress().getCountry());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
-                    }
-                    if(order.getCustomer().getShippingAddress() != null){
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME , order.getCustomer().getShippingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getCustomer().getShippingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getCustomer().getShippingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
-                    }
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON,gson.toJson(order));
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
+                        ContentValues orderValues = new ContentValues();
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
+                        if(order.getCreatedAt() != null) {
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
+                        }
+                        if(order.getUpdatedAt() != null) {
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
+                        }
+                        if(order.getCompletedAt() != null) {
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
+                        }
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SUBTOTAL, order.getSubtotal());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getTotalLineItemsQuantity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_TAX, order.getTotalTax());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getTotalShipping());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_TAX, order.getCartTax());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_TAX, order.getShippingTax());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getTotalDiscount());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_DISCOUNT, order.getCartDiscount());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_DISCOUNT, order.getOrderDiscount());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingMethods());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_NOTE, order.getNote());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_VIEW_ORDER_URL, order.getViewOrderUrl());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentDetails().getMethodId());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME , order.getBillingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_CITY, order.getBillingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_STATE, order.getBillingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_POSTCODE, order.getBillingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COUNTRY, order.getBillingAddress().getCountry());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_EMAIL, order.getBillingAddress().getEmail());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_PHONE, order.getBillingAddress().getPhone());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID, order.getCustomerId());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getCustomer().getEmail());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getCustomer().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
+                        if(order.getCustomer().getLastOrderDate() != null) {
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
+                        }
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
+                        if(order.getCustomer().getBillingAddress()!= null){
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getCustomer().getBillingAddress().getAddressOne());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getCustomer().getBillingAddress().getAddressTwo());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getCustomer().getBillingAddress().getCity());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getCustomer().getBillingAddress().getState());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getCustomer().getBillingAddress().getPostcode());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getCustomer().getBillingAddress().getCountry());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
+                        }
+                        if(order.getCustomer().getShippingAddress() != null){
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME , order.getCustomer().getShippingAddress().getLastName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getCustomer().getShippingAddress().getCity());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getCustomer().getShippingAddress().getState());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
+                        }
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON,gson.toJson(order));
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
 
-                    ordersValues.add(orderValues);
+                        ordersValues.add(orderValues);
 
-                }
+                    }
 
-                ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
-                ordersValuesArray = ordersValues.toArray(ordersValuesArray);
-                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
-                Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
+                    ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
+                    ordersValuesArray = ordersValues.toArray(ordersValuesArray);
+                    int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
+                    Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
 
-                if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
-                    pageOrder ++;
-                    synchronizeBatchOrders(date);
-                } else {
-                    finalizeSyncOrders();
+                    if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
+                        pageOrder ++;
+                        synchronizeBatchOrders(date);
+                    } else {
+                        finalizeSyncOrders();
+                    }
                 }
             }
 
             @Override
-            public void failure(RetrofitError error) {
-                Log.e(LOG_TAG, "Orders sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG,"SSLHandshakeException Orders sync");
-                } else if (error.getResponse()==null) {
-                    Log.e(LOG_TAG,"Not response error Orders sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG,httpCode + " error Orders sync");
-                    switch (httpCode){
-                        case 401:
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
+            public void onFailure(Call<Orders> call, Throwable t) {
                 if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
                     pageOrder ++;
                     synchronizeBatchOrders(date);
@@ -747,6 +709,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             }
         });
+
     }
 
     private void finalizeSyncOrders() {
@@ -772,60 +735,53 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
+        /*
         String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
         String[] parameters = new String[]{ String.valueOf("0") };
         int rowsDeleted = getContext().getContentResolver().delete(WoodminContract.OrdersEntry.CONTENT_URI,
                 query,
                 parameters);
         Log.d(LOG_TAG, "Orders: " + rowsDeleted + " old records deleted.");
+        */
+
         getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
         pageOrder = 0;
     }
 
     private void synchronizeShop() {
-        Log.v(LOG_TAG,"Shop sync start");
-        woocommerceApi.getShop(new Callback<Shop>() {
+        Log.v(LOG_TAG, "Shop sync start");
+        Call<Shop> call = woocommerceApi.getShop();
+        call.enqueue(new Callback<Shop>() {
             @Override
-            public void success(Shop shop, Response response) {
-                Log.v(LOG_TAG,"Shop sync success");
+            public void onResponse(Call<Shop> call, retrofit2.Response<Shop> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    Log.v(LOG_TAG, "Shop sync success");
 
-                int shopRowsDeleted = getContext().getContentResolver().delete(WoodminContract.ShopEntry.CONTENT_URI,null,null);
-                Log.v(LOG_TAG,shopRowsDeleted + " Shop rows deleted");
+                    int shopRowsDeleted = getContext().getContentResolver().delete(WoodminContract.ShopEntry.CONTENT_URI, null, null);
+                    Log.v(LOG_TAG, shopRowsDeleted + " Shop rows deleted");
 
-                ContentValues shopValues = new ContentValues();
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_NAME, shop.getStore().getName());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_DESCRIPTION, shop.getStore().getDescription());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_URL, shop.getStore().getUrl());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_WC_VERSION, shop.getStore().getWcVersion());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_CURRENCY, shop.getStore().getMeta().getCurrency());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_CURRENCY_FORMAT, shop.getStore().getMeta().getCurrencyFormat());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_DIMENSION_UNIT, shop.getStore().getMeta().getDimensionUnit());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_TAXI_INCLUDE, shop.getStore().getMeta().isTaxIncluded() ? "1" : "0");
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_TIMEZONE, shop.getStore().getMeta().getTimezone());
-                shopValues.put(WoodminContract.ShopEntry.COLUMN_META_WEIGHT_UNIT, shop.getStore().getMeta().getWeightUnit());
+                    ContentValues shopValues = new ContentValues();
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_NAME, response.body().getStore().getName());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_DESCRIPTION, response.body().getStore().getDescription());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_URL, response.body().getStore().getUrl());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_WC_VERSION, response.body().getStore().getWcVersion());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_CURRENCY, response.body().getStore().getMeta().getCurrency());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_CURRENCY_FORMAT, response.body().getStore().getMeta().getCurrencyFormat());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_DIMENSION_UNIT, response.body().getStore().getMeta().getDimensionUnit());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_TAXI_INCLUDE, response.body().getStore().getMeta().isTaxIncluded() ? "1" : "0");
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_TIMEZONE, response.body().getStore().getMeta().getTimezone());
+                    shopValues.put(WoodminContract.ShopEntry.COLUMN_META_WEIGHT_UNIT, response.body().getStore().getMeta().getWeightUnit());
 
-                Uri insertedShopUri = getContext().getContentResolver().insert(WoodminContract.ShopEntry.CONTENT_URI, shopValues);
-                long shopId = ContentUris.parseId(insertedShopUri);
-                Log.d(LOG_TAG, "Shop successful inserted ID: " + shopId);
+                    Uri insertedShopUri = getContext().getContentResolver().insert(WoodminContract.ShopEntry.CONTENT_URI, shopValues);
+                    long shopId = ContentUris.parseId(insertedShopUri);
+                    Log.d(LOG_TAG, "Shop successful inserted ID: " + shopId);
+                }
             }
 
             @Override
-            public void failure(RetrofitError error) {
-                Log.v(LOG_TAG, "Shop sync error");
-                if (error.getCause() instanceof SSLHandshakeException) {
-                    Log.e(LOG_TAG,"SSLHandshakeException Shop sync");
-                } else if (error.getResponse()==null) {
-                    Log.e(LOG_TAG,"Not response error Shop sync");
-                } else {
-                    int httpCode = error.getResponse().getStatus();
-                    Log.e(LOG_TAG,httpCode + " error Shop sync");
-                    switch (httpCode){
-                        case 401:
-                            break;
-                        default:
-                            break;
-                    }
-                }
+            public void onFailure(Call<Shop> call, Throwable t) {
+
             }
         });
 
