@@ -334,13 +334,13 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     customersValuesArray = customersValues.toArray(customersValuesArray);
                     int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
                     Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
+                }
 
-                    if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
-                        pageCustomer++;
-                        synchronizeBatchCustomers(date);
-                    } else {
-                        finalizeSyncCustomers();
-                    }
+                if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
+                    pageCustomer++;
+                    synchronizeBatchCustomers(date);
+                } else {
+                    finalizeSyncCustomers();
                 }
             }
 
@@ -472,13 +472,13 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     productsValuesArray = productsValues.toArray(productsValuesArray);
                     int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
                     Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
+                }
 
-                    if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
-                        pageProduct++;
-                        synchronizeBatchProducts(date);
-                    } else {
-                        finalizeSyncProducts();
-                    }
+                if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
+                    pageProduct++;
+                    synchronizeBatchProducts(date);
+                } else {
+                    finalizeSyncProducts();
                 }
             }
 
@@ -534,7 +534,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeOrders(final Date date) {
         Log.v(LOG_TAG, "Orders sync start");
         if(date == null) {
-            Call<Count> call = woocommerceApi.countCustomers();
+            Call<Count> call = woocommerceApi.countOrders();
             call.enqueue(new Callback<Count>() {
                 @Override
                 public void onResponse(Call<Count> call, retrofit2.Response<Count> response) {
@@ -689,13 +689,12 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     ordersValuesArray = ordersValues.toArray(ordersValuesArray);
                     int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
                     Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
-
-                    if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
-                        pageOrder ++;
-                        synchronizeBatchOrders(date);
-                    } else {
-                        finalizeSyncOrders();
-                    }
+                }
+                if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
+                    pageOrder ++;
+                    synchronizeBatchOrders(date);
+                } else {
+                    finalizeSyncOrders();
                 }
             }
 

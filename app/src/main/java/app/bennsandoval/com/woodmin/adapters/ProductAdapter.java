@@ -61,8 +61,8 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
             Product product = gson.fromJson(json, Product.class);
 
             if(product.getStockQuantity() > 0){
-                holder.txtName.setBackgroundColor(mContext.getResources().getColor(R.color.primary));
-                holder.txtStock.setTextColor(mContext.getResources().getColor(R.color.primary));
+                holder.txtName.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
+                holder.txtStock.setTextColor(mContext.getResources().getColor(R.color.colorPrimary));
             } else {
                 holder.txtName.setBackgroundColor(mContext.getResources().getColor(R.color.red));
                 holder.txtStock.setTextColor(mContext.getResources().getColor(R.color.red));

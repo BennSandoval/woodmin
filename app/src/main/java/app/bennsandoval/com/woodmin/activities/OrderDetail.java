@@ -162,8 +162,8 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
         if(mOrderSelected != null) {
 
             if(mOrderSelected.getStatus().toUpperCase().equals("COMPLETED")){
-                mHeader.setBackgroundColor(getResources().getColor(R.color.primary));
-                mStatus.setTextColor(getResources().getColor(R.color.primary));
+                mHeader.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                mStatus.setTextColor(getResources().getColor(R.color.colorPrimary));
             } else if(mOrderSelected.getStatus().toUpperCase().equals("CANCELLED")){
                 mHeader.setBackgroundColor(getResources().getColor(R.color.red));
                 mStatus.setTextColor(getResources().getColor(R.color.red));

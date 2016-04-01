@@ -63,10 +63,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     private int SHOP_COLUMN_NAME = 0;
     private int SHOP_COLUMN_DESCRIPTION = 1;
 
-    private static final int ORDER_LOADER = 1;
-    private static final int PRODUCT_LOADER = 2;
-    private static final int CUSTOMER_LOADER = 3;
-
     private static final String[] COUNT_PROJECTION = {
             "COUNT(*)"
     };
@@ -125,9 +121,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
         mDrawerListView.addHeaderView(header);
 
         getActivity().getSupportLoaderManager().initLoader(SHOP_LOADER, null, this);
-        getActivity().getSupportLoaderManager().initLoader(ORDER_LOADER, null, this);
-        getActivity().getSupportLoaderManager().initLoader(PRODUCT_LOADER, null, this);
-        getActivity().getSupportLoaderManager().initLoader(CUSTOMER_LOADER, null, this);
 
         return mDrawerListView;
     }
@@ -167,6 +160,68 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                 if (!isAdded()) {
                     return;
                 }
+
+                Cursor cursor = getActivity().getContentResolver().query(WoodminContract.OrdersEntry.CONTENT_URI,
+                        COUNT_PROJECTION,
+                        null,
+                        null,
+                        null);
+                if(cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int count = cursor.getInt(COLUMN_COUNT);
+                            mValues[0].setCount(count);
+                        } while (cursor.moveToNext());
+                    }
+                    cursor.close();
+                }
+
+                cursor = getActivity().getContentResolver().query(WoodminContract.OrdersEntry.CONTENT_URI,
+                        COUNT_PROJECTION,
+                        null,
+                        null,
+                        null);
+                if(cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int count = cursor.getInt(COLUMN_COUNT);
+                            mValues[0].setCount(count);
+                        } while (cursor.moveToNext());
+                    }
+                    cursor.close();
+                }
+
+                cursor = getActivity().getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
+                        COUNT_PROJECTION,
+                        null,
+                        null,
+                        null);
+                if(cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int count = cursor.getInt(COLUMN_COUNT);
+                            mValues[1].setCount(count);
+                        } while (cursor.moveToNext());
+                    }
+                    cursor.close();
+                }
+
+                cursor = getActivity().getContentResolver().query(WoodminContract.CustomerEntry.CONTENT_URI,
+                        COUNT_PROJECTION,
+                        null,
+                        null,
+                        null);
+                if(cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int count = cursor.getInt(COLUMN_COUNT);
+                            mValues[2].setCount(count);
+                        } while (cursor.moveToNext());
+                    }
+                    cursor.close();
+                }
+
+                mAdapter.notifyDataSetChanged();
 
                 if (!mUserLearnedDrawer) {
                     mUserLearnedDrawer = true;
@@ -280,45 +335,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                         sortOrder);
                 }
                 break;
-            case ORDER_LOADER: {
-                Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
-                String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;
-                String[] parameters = new String[]{ String.valueOf("1") };
-                cursorLoader = new CursorLoader(
-                        getActivity().getApplicationContext(),
-                        ordersUri,
-                        COUNT_PROJECTION,
-                        null,
-                        null,
-                        null);
-                }
-                break;
-            case PRODUCT_LOADER:{
-                Uri productUri = WoodminContract.ProductEntry.CONTENT_URI;
-                String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
-                String[] parameters = new String[]{ String.valueOf("1") };
-                cursorLoader = new CursorLoader(
-                        getActivity().getApplicationContext(),
-                        productUri,
-                        COUNT_PROJECTION,
-                        null,
-                        null,
-                        null);
-                }
-                break;
-            case CUSTOMER_LOADER:{
-                Uri customerUri = WoodminContract.CustomerEntry.CONTENT_URI;
-                String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
-                String[] parameters = new String[]{ String.valueOf("1") };
-                cursorLoader = new CursorLoader(
-                        getActivity().getApplicationContext(),
-                        customerUri,
-                        COUNT_PROJECTION,
-                        null,
-                        null,
-                        null);
-                }
-                break;
             default:
                 cursorLoader = null;
                 break;
@@ -350,36 +366,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                     cursor.close();
                 }
                 break;
-            case ORDER_LOADER: {
-                    if (cursor.moveToFirst()) {
-                        do {
-                            count = cursor.getInt(COLUMN_COUNT);
-                            mValues[0].setCount(count);
-                        } while (cursor.moveToNext());
-                    }
-                    cursor.close();
-                }
-                break;
-            case PRODUCT_LOADER: {
-                    if (cursor.moveToFirst()) {
-                        do {
-                            count = cursor.getInt(COLUMN_COUNT);
-                            mValues[1].setCount(count);
-                        } while (cursor.moveToNext());
-                    }
-                    cursor.close();
-                }
-                break;
-            case CUSTOMER_LOADER: {
-                    if (cursor.moveToFirst()) {
-                        do {
-                            count = cursor.getInt(COLUMN_COUNT);
-                            mValues[2].setCount(count);
-                        } while (cursor.moveToNext());
-                    }
-                    cursor.close();
-                }
-                break;
             default:
                 break;
         }
@@ -395,18 +381,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
                     shopName.setText("");
                     TextView resume = (TextView) mDrawerListView.findViewById(R.id.resume);
                     resume.setText("");
-                }
-                break;
-            case ORDER_LOADER: {
-                    mValues[0].setCount(0);
-                }
-                break;
-            case PRODUCT_LOADER: {
-                    mValues[1].setCount(0);
-                }
-                break;
-            case CUSTOMER_LOADER: {
-                    mValues[2].setCount(0);
                 }
                 break;
             default:

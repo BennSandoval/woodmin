@@ -8,6 +8,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -135,6 +137,18 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                 mSwipeLayout.setEnabled(enable);
             }
         });
+
+        FloatingActionButton fab = (FloatingActionButton) rootView.findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    Snackbar.make(view, "Create new order", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+
+                }
+            });
+        }
 
         return rootView;
     }

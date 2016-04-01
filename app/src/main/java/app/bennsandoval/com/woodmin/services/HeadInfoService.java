@@ -326,7 +326,7 @@ public class HeadInfoService extends Service {
                                         txtStatus.setText(order.getStatus().toUpperCase());
 
                                         if(order.getStatus().toUpperCase().equals("COMPLETED")){
-                                            txtStatus.setTextColor(getResources().getColor(R.color.primary));
+                                            txtStatus.setTextColor(getResources().getColor(R.color.colorPrimary));
                                         } else if(order.getStatus().toUpperCase().equals("CANCELLED")){
                                             txtStatus.setTextColor(getResources().getColor(R.color.red));
                                         } else {

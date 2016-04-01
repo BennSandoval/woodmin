@@ -100,7 +100,7 @@ public class ResumeAdapter extends ArrayAdapter<Resume> {
             holder.txtTitle.setBackgroundColor(mContext.getResources().getColor(R.color.red));
             //holder.txtTitle.setTextColor(mContext.getResources().getColor(R.color.red));
         } else {
-            holder.txtTitle.setBackgroundColor(mContext.getResources().getColor(R.color.primary));
+            holder.txtTitle.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
             //holder.txtTitle.setTextColor(mContext.getResources().getColor(R.color.primary));
         }
 

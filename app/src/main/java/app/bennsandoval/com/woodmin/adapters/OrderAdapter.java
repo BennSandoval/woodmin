@@ -78,8 +78,8 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
             Order order = gson.fromJson(json, Order.class);
 
             if(order.getStatus().toUpperCase().equals("COMPLETED")){
-                holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.primary));
-                holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.primary));
+                holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
+                holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.colorPrimary));
             } else if(order.getStatus().toUpperCase().equals("CANCELLED")){
                 holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.red));
                 holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.red));

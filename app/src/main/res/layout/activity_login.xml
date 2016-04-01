@@ -74,7 +74,7 @@
             <Button
                 android:id="@+id/sign_in_button"
                 style="?android:textAppearanceSmall"
-                android:background="@color/primary"
+                android:background="@color/colorPrimary"
                 android:textColor="@android:color/white"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

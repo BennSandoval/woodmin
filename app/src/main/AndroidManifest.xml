@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
-    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -19,7 +18,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
-        android:name="app.bennsandoval.com.woodmin.Woodmin"
+        android:name=".Woodmin"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/title_activity_login"
@@ -29,36 +28,44 @@
             android:value="@integer/google_play_services_version" />
 
         <activity
-            android:name="app.bennsandoval.com.woodmin.activities.LoginActivity"
+            android:name=".activities.LoginActivity"
             android:label="@string/app_name"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize|stateHidden" >
+
             <!-- Start Activity -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
             <meta-data
                 android:name="android.app.default_searchable"
                 android:value=".activities.MainActivity" />
         </activity>
-
         <activity
             android:name=".activities.MainActivity"
+            android:screenOrientation="portrait"
             android:label="@string/app_name" >
+
             <!-- Ok Google voice search -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
             <intent-filter>
                 <action android:name="com.google.android.gms.actions.SEARCH_ACTION" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- Accepts URIs that begin with "app://woodmin.com" -->
             <intent-filter android:label="@string/app_name" >
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:host="woodmin.com"
                     android:scheme="app" />
@@ -66,40 +73,49 @@
             <!-- Accepts URIs that begin with "http://woodmin.com" -->
             <intent-filter android:label="@string/app_name" >
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:host="woodmin.com"
                     android:pathPrefix="/app"
                     android:scheme="http" />
             </intent-filter>
-            <meta-data android:name="android.app.searchable"
-                android:resource="@xml/searchable"/>
-        </activity>
 
+            <meta-data
+                android:name="android.app.searchable"
+                android:resource="@xml/searchable" />
+        </activity>
         <activity
-            android:name="app.bennsandoval.com.woodmin.activities.OrderDetail"
-            android:label="@string/app_name">
+            android:name=".activities.OrderDetail"
+            android:screenOrientation="portrait"
+            android:label="@string/app_name" >
+
             <!-- Accepts URIs that begin with "app://woodmin.com/order" -->
             <intent-filter android:label="@string/app_name" >
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:host="woodmin.com"
-                    android:scheme="app"
-                    android:path="/order"/>
+                    android:path="/order"
+                    android:scheme="app" />
             </intent-filter>
             <!-- Accepts URIs that begin with "http://app.woodmin.com/order" -->
             <intent-filter android:label="@string/app_name" >
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
-                    android:scheme="http"
-                    android:pathPrefix="/app"
                     android:host="woodmin.com"
-                    android:path="/order"/>
+                    android:path="/order"
+                    android:pathPrefix="/app"
+                    android:scheme="http" />
             </intent-filter>
         </activity>
 
@@ -148,7 +164,6 @@
                 android:name="android.content.SyncAdapter"
                 android:resource="@xml/syncadapter" />
         </service>
-
 
         <meta-data
             android:name="io.fabric.ApiKey"
