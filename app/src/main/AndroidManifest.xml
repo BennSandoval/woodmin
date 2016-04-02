@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="app.bennsandoval.com.woodmin" >
+    package="app.bennsandoval.com.woodmin">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
@@ -22,7 +22,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/title_activity_login"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
@@ -30,9 +30,9 @@
         <activity
             android:name=".activities.LoginActivity"
             android:label="@string/app_name"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize|stateHidden" >
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize|stateHidden">
 
             <!-- Start Activity -->
             <intent-filter>
@@ -47,8 +47,8 @@
         </activity>
         <activity
             android:name=".activities.MainActivity"
-            android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
 
             <!-- Ok Google voice search -->
             <intent-filter>
@@ -60,7 +60,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- Accepts URIs that begin with "app://woodmin.com" -->
-            <intent-filter android:label="@string/app_name" >
+            <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -71,7 +71,7 @@
                     android:scheme="app" />
             </intent-filter>
             <!-- Accepts URIs that begin with "http://woodmin.com" -->
-            <intent-filter android:label="@string/app_name" >
+            <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -89,11 +89,11 @@
         </activity>
         <activity
             android:name=".activities.OrderDetail"
-            android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
 
             <!-- Accepts URIs that begin with "app://woodmin.com/order" -->
-            <intent-filter android:label="@string/app_name" >
+            <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -105,7 +105,7 @@
                     android:scheme="app" />
             </intent-filter>
             <!-- Accepts URIs that begin with "http://app.woodmin.com/order" -->
-            <intent-filter android:label="@string/app_name" >
+            <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -118,9 +118,19 @@
                     android:scheme="http" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.OrderLinesShip"
+            android:label="@string/app_name"
+            android:parentActivityName=".activities.OrderDetail"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="app.bennsandoval.com.woodmin.activities.OrderDetail" />
+        </activity>
 
         <!-- Caller info -->
-        <receiver android:name=".receivers.CallerDetector" >
+        <receiver android:name=".receivers.CallerDetector">
             <intent-filter>
                 <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
@@ -129,11 +139,10 @@
         <service
             android:name=".services.HeadInfoService"
             android:enabled="true"
-            android:exported="true" >
-        </service>
+            android:exported="true"></service>
 
         <!-- Woodmin Aunthenticator -->
-        <service android:name=".authenticator.WoodminAuthenticatorService" >
+        <service android:name=".authenticator.WoodminAuthenticatorService">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
@@ -155,7 +164,7 @@
         <!-- Woodmin Service -->
         <service
             android:name=".sync.WoodminSyncService"
-            android:exported="true" >
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />
             </intent-filter>
@@ -168,6 +177,7 @@
         <meta-data
             android:name="io.fabric.ApiKey"
             android:value="6a4c51f0ada31bedf6978d3325cbe95aa4fe544d" />
+
     </application>
 
 </manifest>

@@ -14,7 +14,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
@@ -63,8 +62,7 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext()).inflate(mLayoutResourceId, parent, false);
         itemView.setOnClickListener(mOnClickListener);
-        ViewHolder vh = new ViewHolder(itemView);
-        return vh;
+        return new ViewHolder(itemView);
     }
 
     @Override
@@ -87,7 +85,7 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
                 holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.orange));
                 holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.orange));
             }
-            holder.txtOrder.setText(mContext.getString(R.string.order) + " " + order.getOrderNumber());
+            holder.txtOrder.setText(mContext.getString(R.string.order, order.getOrderNumber()));
             holder.txtPrice.setText("$" + order.getTotal());
             holder.txtStatus.setText(order.getStatus().toUpperCase());
 

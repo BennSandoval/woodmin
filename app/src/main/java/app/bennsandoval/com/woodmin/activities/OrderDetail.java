@@ -1,23 +1,37 @@
 package app.bennsandoval.com.woodmin.activities;
 
+import android.app.AlertDialog;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.squareup.picasso.Picasso;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
@@ -29,6 +43,11 @@ import app.bennsandoval.com.woodmin.models.orders.MetaItem;
 import app.bennsandoval.com.woodmin.models.orders.Note;
 import app.bennsandoval.com.woodmin.models.orders.Notes;
 import app.bennsandoval.com.woodmin.models.orders.Order;
+import app.bennsandoval.com.woodmin.models.orders.OrderResponse;
+import app.bennsandoval.com.woodmin.models.orders.OrderUpdate;
+import app.bennsandoval.com.woodmin.models.orders.OrderUpdateValues;
+import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.products.Variation;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -37,7 +56,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
 
     private final String LOG_TAG = OrderDetail.class.getSimpleName();
 
-    private int mDocumentId;
+    private int mOderId = -1;
     private Order mOrderSelected;
     private Gson mGson = new GsonBuilder().create();
 
@@ -65,14 +84,30 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
     private static final String[] ORDER_PROJECTION = {
             WoodminContract.OrdersEntry.COLUMN_JSON,
     };
-    private int COLUMN_ORDER_COLUMN_COLUMN_JSON = 0;
+    private int COLUMN_ORDER_COLUMN_JSON = 0;
+
+    private static final String[] PRODUCT_PROJECTION = {
+            WoodminContract.ProductEntry.COLUMN_ID,
+            WoodminContract.ProductEntry.COLUMN_JSON,
+    };
+    private int COLUMN_PRODUCT_COLUMN_JSON = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mDocumentId = getIntent().getIntExtra("order", -1);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        if(mOderId < 0 ) {
+            mOderId = getIntent().getIntExtra("order", -1);
+            if(mOderId < 0 ) {
+                mOderId = prefs.getInt("product_details", -1);
+            } else {
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putInt("product_details", mOderId);
+                editor.apply();
+            }
+        }
 
-        setContentView(R.layout.activity_order_detail);
+        setContentView(R.layout.activity_order);
         mHeader = (LinearLayout) findViewById(R.id.header);
         mOrder = (TextView) findViewById(R.id.order);
         mPrice = (TextView) findViewById(R.id.price);
@@ -95,6 +130,31 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
 
         getSupportLoaderManager().initLoader(ORDER_LOADER, null, this);
 
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderDetail.this)
+                            .setTitle(getString(R.string.order, mOrderSelected.getOrderNumber()))
+                            .setMessage(getString(R.string.order_update_confirmation))
+                            .setCancelable(false)
+                            .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    finalizeOrder();
+                                }
+                            })
+                            .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                }
+                            });
+                    alertDialogBuilder.create().show();
+
+                }
+            });
+        }
+
     }
 
     @Override
@@ -105,9 +165,9 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
         Uri ordersUri = WoodminContract.OrdersEntry.CONTENT_URI;
         switch (id) {
             case ORDER_LOADER:
-                if(mDocumentId > 0){
+                if(mOderId > 0){
                     String query = WoodminContract.OrdersEntry.COLUMN_ID + " == ?" ;
-                    String[] parameters = new String[]{ String.valueOf(mDocumentId) };
+                    String[] parameters = new String[]{ String.valueOf(mOderId) };
                     cursorLoader = new CursorLoader(
                             getApplicationContext(),
                             ordersUri,
@@ -131,10 +191,9 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 mOrderSelected = null;
                 if (cursor.moveToFirst()) {
                     do {
-                        String json = cursor.getString(COLUMN_ORDER_COLUMN_COLUMN_JSON);
+                        String json = cursor.getString(COLUMN_ORDER_COLUMN_JSON);
                         if(json!=null){
-                            Order order= mGson.fromJson(json, Order.class);
-                            mOrderSelected = order;
+                            mOrderSelected = mGson.fromJson(json, Order.class);
                         }
                     } while (cursor.moveToNext());
                     fillView();
@@ -149,9 +208,10 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
         Log.d(LOG_TAG, "onLoaderReset");
         switch (cursorLoader.getId()) {
-            case ORDER_LOADER:
+            case ORDER_LOADER: {
                 mOrderSelected = null;
                 break;
+            }
             default:
                 break;
         }
@@ -171,8 +231,8 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 mHeader.setBackgroundColor(getResources().getColor(R.color.orange));
                 mStatus.setTextColor(getResources().getColor(R.color.orange));
             }
-            mOrder.setText(getString(R.string.order) + " " + mOrderSelected.getOrderNumber());
-            mPrice.setText("$" + mOrderSelected.getTotal());
+            mOrder.setText(getString(R.string.order, mOrderSelected.getOrderNumber()));
+            mPrice.setText(getString(R.string.price, mOrderSelected.getTotal()));
             mStatus.setText(mOrderSelected.getStatus().toUpperCase());
 
 
@@ -258,15 +318,57 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 mShipping.setText(addres);
             }
 
-            LinearLayout cart = (LinearLayout)findViewById(R.id.cart);
-            for(Item item:mOrderSelected.getItems()){
+            CardView cart = (CardView)findViewById(R.id.shopping_card);
+            cart.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent orderIntent = new Intent(getApplicationContext(), OrderLinesShip.class);
+                    orderIntent.putExtra("order", mOderId);
+                    startActivityForResult(orderIntent, 100);
+                }
+            });
+
+            LinearLayout cart_details = (LinearLayout)findViewById(R.id.shopping_card_details);
+
+            List<String> ids = new ArrayList<>();
+            List<String> parameters = new ArrayList<>();
+
+            for(Item item:mOrderSelected.getItems()) {
+                ids.add(String.valueOf(item.getProductId()));
+                parameters.add("?");
+            }
+
+            String query = WoodminContract.ProductEntry.COLUMN_ID + " IN (" + TextUtils.join(", ", parameters) + ")";
+            Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
+                    PRODUCT_PROJECTION,
+                    query,
+                    ids.toArray(new String[ids.size()]),
+                    null);
+
+            List<Product> products = new ArrayList<>();
+            if(cursor != null) {
+                if (cursor.moveToFirst()) {
+                    do {
+                        String json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
+                        if(json!=null) {
+                            Product product = mGson.fromJson(json, Product.class);
+                            products.add(product);
+                        }
+                    } while (cursor.moveToNext());
+                }
+                cursor.close();
+            }
+
+            for(Item item:mOrderSelected.getItems()) {
 
                 View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
-                TextView items = (TextView) child.findViewById(R.id.items);
+                ImageView imageView = (ImageView) child.findViewById(R.id.image);
+                TextView quantity = (TextView) child.findViewById(R.id.quantity);
                 TextView description = (TextView) child.findViewById(R.id.description);
                 TextView price = (TextView) child.findViewById(R.id.price);
+                TextView sku = (TextView) child.findViewById(R.id.sku);
 
-                items.setText(String.valueOf(item.getQuantity()));
+                quantity.setText(String.valueOf(item.getQuantity()));
                 if(item.getMeta().size()>0){
                     String descriptionWithMeta = item.getName();
                     for(MetaItem itemMeta:item.getMeta()){
@@ -276,9 +378,36 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 } else {
                     description.setText(item.getName());
                 }
-                price.setText("$"+item.getTotal());
+                price.setText(getString(R.string.price, item.getTotal()));
+                sku.setText(item.getSku());
 
-                cart.addView(child);
+                Product productForItem = null;
+                for(Product product: products) {
+                    if(product.getId() == item.getProductId()) {
+                        productForItem = product;
+                        break;
+                    }
+                    for(Variation variation:product.getVariations()) {
+                        if(variation.getId() == item.getProductId()) {
+                            productForItem = product;
+                            break;
+                        }
+                    }
+                }
+
+                if(productForItem == null) {
+                    Log.v(LOG_TAG, "Missing product");
+                } else {
+                    Picasso.with(getApplicationContext())
+                            .load(productForItem.getFeaturedSrc())
+                            .resize(50, 50)
+                            .centerCrop()
+                            .placeholder(R.drawable.cloud)
+                            .error(R.drawable.ic_action_cancel)
+                            .into(imageView);
+                }
+
+                cart_details.addView(child);
             }
             getNotes();
 
@@ -336,4 +465,146 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
 
         });
     }
+
+    private void finalizeOrder() {
+
+        OrderUpdate orderUpdate = new OrderUpdate();
+        OrderUpdateValues orderUpdateValues = new OrderUpdateValues();
+        orderUpdateValues.setStatus("completed");
+        orderUpdate.setOrder(orderUpdateValues);
+
+        Woocommerce woocommerceApi = ((Woodmin) getApplication()).getWoocommerceApiHandler();
+        Call<OrderResponse> call = woocommerceApi.updateOrder(mOrderSelected.getOrderNumber(), orderUpdate);
+        call.enqueue(new Callback<OrderResponse>() {
+
+            @Override
+            public void onResponse(final Call<OrderResponse> call, final Response<OrderResponse> response) {
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), getString(R.string.success_update), Toast.LENGTH_LONG).show();
+
+                            Order order = response.body().getOrder();
+                            ContentValues orderValues = new ContentValues();
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
+                            if(order.getCreatedAt() != null) {
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
+                            }
+                            if(order.getUpdatedAt() != null) {
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
+                            }
+                            if(order.getCompletedAt() != null) {
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
+                            }
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SUBTOTAL, order.getSubtotal());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getTotalLineItemsQuantity());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_TAX, order.getTotalTax());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getTotalShipping());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_TAX, order.getCartTax());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_TAX, order.getShippingTax());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getTotalDiscount());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_DISCOUNT, order.getCartDiscount());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_DISCOUNT, order.getOrderDiscount());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingMethods());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_NOTE, order.getNote());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_VIEW_ORDER_URL, order.getViewOrderUrl());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentDetails().getMethodId());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME , order.getBillingAddress().getLastName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_CITY, order.getBillingAddress().getCity());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_STATE, order.getBillingAddress().getState());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_POSTCODE, order.getBillingAddress().getPostcode());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COUNTRY, order.getBillingAddress().getCountry());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_EMAIL, order.getBillingAddress().getEmail());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_PHONE, order.getBillingAddress().getPhone());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID, order.getCustomerId());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getCustomer().getEmail());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getCustomer().getFirstName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
+                            if(order.getCustomer().getLastOrderDate() != null) {
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
+                            }
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
+                            if(order.getCustomer().getBillingAddress()!= null){
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getCustomer().getBillingAddress().getAddressOne());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getCustomer().getBillingAddress().getAddressTwo());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getCustomer().getBillingAddress().getCity());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getCustomer().getBillingAddress().getState());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getCustomer().getBillingAddress().getPostcode());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getCustomer().getBillingAddress().getCountry());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
+                            }
+                            if(order.getCustomer().getShippingAddress() != null){
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME , order.getCustomer().getShippingAddress().getLastName());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getCustomer().getShippingAddress().getCity());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getCustomer().getShippingAddress().getState());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
+                                orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
+                            }
+                            Gson gson = new GsonBuilder().create();
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, gson.toJson(order));
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
+
+                            Uri insertedOrderUri = getContentResolver().insert(WoodminContract.OrdersEntry.CONTENT_URI, orderValues);
+                            long orderId = ContentUris.parseId(insertedOrderUri);
+                            Log.d(LOG_TAG, "Orders successful updated ID: " + orderId);
+                        }
+                    });
+                } else {
+                    Log.e(LOG_TAG, "onFailure ");
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), getString(R.string.error_update), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Call<OrderResponse> call, Throwable t) {
+                Log.e(LOG_TAG, "onFailure ");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), getString(R.string.error_update), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+
+    }
+
 }

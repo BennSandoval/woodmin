@@ -44,6 +44,7 @@ import app.bennsandoval.com.woodmin.models.orders.Order;
 import app.bennsandoval.com.woodmin.models.orders.Orders;
 import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.models.products.Products;
+import app.bennsandoval.com.woodmin.models.products.Variation;
 import app.bennsandoval.com.woodmin.models.shop.Shop;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 import okhttp3.Interceptor;
@@ -465,6 +466,28 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
 
                         productsValues.add(productValues);
+
+                        for(Variation variation:product.getVariations()) {
+
+                            //TODO, CHANGE THIS APPROACH
+                            product.setSku(variation.getSku());
+                            product.setPrice(variation.getPrice());
+                            product.setStockQuantity(variation.getStockQuantity());
+
+                            ContentValues variationValues = new ContentValues();
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_ID, variation.getId());
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
+                            variationValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+
+                            productsValues.add(variationValues);
+
+                        }
+
+
 
                     }
 

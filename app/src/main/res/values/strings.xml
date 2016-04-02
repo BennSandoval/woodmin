@@ -4,6 +4,9 @@
     <string name="app_name">Woodmin</string>
     <string name="search_hint">Search</string>
 
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
     <!-- Notifications String -->
     <string name="early_sync">Sorry, you need to wait an hour from the last sync to sync again.</string>
     <string name="start_sync">Synchronization of Customers, Products and Sales Orders in progress.</string>
@@ -58,18 +61,29 @@
     <string name="order_amount">Amount</string>
     <string name="order_taxes">Taxes</string>
     <string name="order_total">Total</string>
-    <string name="order">ORDER</string>
+    <string name="order">ORDER %1$s</string>
     <string name="guest">GUEST</string>
     <string name="items">ITEMS</string>
     <string name="call">CALL</string>
+    <string name="sku_title">sku</string>
+    <string name="stock_title">stock</string>
+    <string name="price_title">price</string>
+    <string name="items_detail">items</string>
+    <string name="counter_process">%1$d/%2$d</string>
+    <string name="scan_instructions">Scan the bar code of the item and tap in the plus sign to confirm and process the next item in the order.</string>
+    <string name="order_complete">Order complete</string>
+    <string name="warning_more_items">Please, be careful this order contains more items for the same product, this is not the previous one.</string>
+    <string name="order_update_confirmation">Please confirm thi action, the order is gonna be mark as completed.</string>
+    <string name="error_update">Something was wrong changing the status of the order</string>
+    <string name="success_update">Order changed successfully</string>
 
     <!--Product-->
     <string name="product_voice_search">product</string>
     <string name="product_title_search">Search product</string>
     <string name="description_product">Description</string>
     <string name="price_const">Price: $%1$s Cost: $%2$s</string>
-    <string name="price">Price: $%1$s</string>
-    <string name="stock">Stock: $%1$s Units</string>
+    <string name="price">$%1$s</string>
+    <string name="stock">%1$s Units</string>
 
     <!--Customer-->
     <string name="customer_voice_search">customer</string>
@@ -77,5 +91,6 @@
     <string name="customer_spend">Total spend</string>
     <string name="customer_call">MAKE A CALL</string>
     <string name="customer_email">SEND EMAIL</string>
+    <string name="title_activity_order_lines_ship">OrderLinesShip</string>
 
 </resources>

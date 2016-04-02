@@ -2,9 +2,11 @@ package app.bennsandoval.com.woodmin;
 
 import android.app.Application;
 import android.util.Base64;
+import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
 import com.google.gson.GsonBuilder;
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +32,15 @@ public class Woodmin extends Application {
     public void onCreate() {
         super.onCreate();
         Fabric.with(this, new Crashlytics());
+
+        Picasso.Builder picassoBuilder = new Picasso.Builder(getApplicationContext());
+        Picasso picasso = picassoBuilder.build();
+        //picasso.setIndicatorsEnabled(true);
+        try {
+            Picasso.setSingletonInstance(picasso);
+        } catch (IllegalStateException ignored) {
+            Log.e(LOG_TAG, "Picasso instance already used");
+        }
     }
 
     public Woocommerce getWoocommerceApiHandler() {
