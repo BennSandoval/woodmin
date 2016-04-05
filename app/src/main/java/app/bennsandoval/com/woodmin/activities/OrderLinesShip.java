@@ -36,8 +36,6 @@ public class OrderLinesShip extends AppCompatActivity {
     private Item mItemProcessing = null;
     private Product mProductProcessing = null;
 
-
-    private Toolbar mToolbar;
     private List<Product> mProducts = new ArrayList<>();
     private Order mOrderSelected;
     private Gson mGson = new GsonBuilder().create();
@@ -106,8 +104,9 @@ public class OrderLinesShip extends AppCompatActivity {
             cursor.close();
         }
 
-        mToolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(mToolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle(getString(R.string.order, String.valueOf(orderId)));
+        setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -204,18 +203,16 @@ public class OrderLinesShip extends AppCompatActivity {
                 .error(R.color.colorAccent)
                 .into(imageView);
 
-        mToolbar.setTitle(mProductProcessing.getTitle());
         if(mOrderSelected.getStatus().toUpperCase().equals("COMPLETED")){
             header.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-        } else if(mOrderSelected.getStatus().toUpperCase().equals("CANCELLED")){
+        } else if(mOrderSelected.getStatus().toUpperCase().equals("CANCELLED") || mOrderSelected.getStatus().toUpperCase().equals("REFUNDED")){
             header.setBackgroundColor(getResources().getColor(R.color.red));
         } else {
             header.setBackgroundColor(getResources().getColor(R.color.orange));
         }
-        txtOrder.setText(getString(R.string.order, mOrderSelected.getOrderNumber()));
-
-        txtTitle.setText(mProductProcessing.getTitle());
         txtSku.setText(mProductProcessing.getSku());
+        txtOrder.setText(mOrderSelected.getOrderNumber());
+        txtTitle.setText(mProductProcessing.getTitle());
         txtPrice.setText("$" + mProductProcessing.getPrice());
         txtStock.setText(String.valueOf(mProductProcessing.getStockQuantity()));
         txtDescription.setText(Html.fromHtml(mProductProcessing.getDescription()).toString());

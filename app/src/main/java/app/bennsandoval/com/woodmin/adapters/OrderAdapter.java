@@ -18,6 +18,7 @@ import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
+import app.bennsandoval.com.woodmin.models.orders.Item;
 import app.bennsandoval.com.woodmin.models.orders.Order;
 
 public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHolder>  {
@@ -78,7 +79,7 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
             if(order.getStatus().toUpperCase().equals("COMPLETED")){
                 holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
                 holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.colorPrimary));
-            } else if(order.getStatus().toUpperCase().equals("CANCELLED")){
+            } else if(order.getStatus().toUpperCase().equals("CANCELLED") || order.getStatus().toUpperCase().equals("REFUNDED")){
                 holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.red));
                 holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.red));
             } else {
@@ -96,7 +97,11 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
             } else {
                 holder.txtCustomer.setText(mContext.getString(R.string.guest));
             }
-            holder.txtItems.setText(String.valueOf(order.getItems().size()) + " " + mContext.getString(R.string.items));
+            int itemsCount = 0;
+            for (Item item:order.getItems()) {
+                itemsCount += item.getQuantity();
+            }
+            holder.txtItems.setText(mContext.getString(R.string.items, itemsCount));
 
             SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.getDefault());
             holder.txtDate.setText(format.format(order.getCreatedAt()));

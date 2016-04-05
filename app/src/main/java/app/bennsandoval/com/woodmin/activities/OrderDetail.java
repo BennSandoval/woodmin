@@ -155,6 +155,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
             });
         }
 
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -224,7 +225,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
             if(mOrderSelected.getStatus().toUpperCase().equals("COMPLETED")){
                 mHeader.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
                 mStatus.setTextColor(getResources().getColor(R.color.colorPrimary));
-            } else if(mOrderSelected.getStatus().toUpperCase().equals("CANCELLED")){
+            } else if(mOrderSelected.getStatus().toUpperCase().equals("CANCELLED") || mOrderSelected.getStatus().toUpperCase().equals("REFUNDED")){
                 mHeader.setBackgroundColor(getResources().getColor(R.color.red));
                 mStatus.setTextColor(getResources().getColor(R.color.red));
             } else {
@@ -280,7 +281,11 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
             } else {
                 mCustomer.setText(getString(R.string.guest));
             }
-            mItems.setText(String.valueOf(mOrderSelected.getItems().size()) + " " + getString(R.string.items));
+            int itemsCount = 0;
+            for (Item item:mOrderSelected.getItems()) {
+                itemsCount += item.getQuantity();
+            }
+            mItems.setText(getString(R.string.items, itemsCount));
 
             SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.getDefault());
             mDate.setText(format.format(mOrderSelected.getCreatedAt()));
@@ -580,6 +585,8 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                             Uri insertedOrderUri = getContentResolver().insert(WoodminContract.OrdersEntry.CONTENT_URI, orderValues);
                             long orderId = ContentUris.parseId(insertedOrderUri);
                             Log.d(LOG_TAG, "Orders successful updated ID: " + orderId);
+
+                            getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
                         }
                     });
                 } else {

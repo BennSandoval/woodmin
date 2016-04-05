@@ -8,11 +8,10 @@
     <string name="no">No</string>
 
     <!-- Notifications String -->
-    <string name="early_sync">Sorry, you need to wait an hour from the last sync to sync again.</string>
-    <string name="start_sync">Synchronization of Customers, Products and Sales Orders in progress.</string>
-    <string name="customer_sync_finish">Customers synchronization complete.</string>
-    <string name="product_sync_finish">Products synchronization complete.</string>
-    <string name="order_sync_finish">Orders synchronization complete.</string>
+    <string name="sync_orders">Orders</string>
+    <string name="sync_products">Products</string>
+    <string name="sync_customers">Customers</string>
+    <string name="sync_count">Processing %1$d of %2$d</string>
 
     <!-- Preferences String -->
     <string name="pref_user_key" translatable="false">pref_user</string>
@@ -63,8 +62,9 @@
     <string name="order_total">Total</string>
     <string name="order">ORDER %1$s</string>
     <string name="guest">GUEST</string>
-    <string name="items">ITEMS</string>
+    <string name="items">%1$d ITEMS</string>
     <string name="call">CALL</string>
+    <string name="order_title">order</string>
     <string name="sku_title">sku</string>
     <string name="stock_title">stock</string>
     <string name="price_title">price</string>
