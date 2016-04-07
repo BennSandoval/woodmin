@@ -9,7 +9,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -36,10 +35,12 @@ import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
+import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.activities.OrderDetail;
 import app.bennsandoval.com.woodmin.adapters.OrderAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class OrdersFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
@@ -91,9 +92,9 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                 mAdapter.getCursor().moveToPosition(position);
                 int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.OrdersEntry.COLUMN_ID));
 
-                Intent orderIntent = new Intent(getActivity(), OrderDetail.class);
-                orderIntent.putExtra("order", idSelected);
-                startActivity(orderIntent);
+                Intent intent = new Intent(getActivity(), OrderDetail.class);
+                intent.putExtra("order", idSelected);
+                startActivity(intent);
             }
         };
 
@@ -144,7 +145,8 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                 @Override
                 public void onClick(View view) {
 
-                    Snackbar.make(view, "Create new order", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    Intent orderIntent = new Intent(getActivity(), OrderNew.class);
+                    startActivity(orderIntent);
 
                 }
             });

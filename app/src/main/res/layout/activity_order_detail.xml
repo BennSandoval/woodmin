@@ -106,7 +106,7 @@
                     android:paddingStart="40dp"
                     android:paddingRight="10dp"
                     android:paddingEnd="40dp"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textColor="@color/gray"
                     android:layout_gravity="center_vertical"/>
 
@@ -125,7 +125,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="7"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
                         android:layout_gravity="center_vertical"/>
 
@@ -156,7 +156,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
                         android:layout_gravity="center_vertical"/>
 
@@ -330,7 +330,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
                         android:text="@string/order_amount"
                         android:layout_gravity="center_vertical">
@@ -363,7 +363,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
                         android:text="@string/order_taxes"
                         android:layout_gravity="center_vertical">
@@ -396,7 +396,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
                         android:text="@string/order_total"
                         android:layout_gravity="center_vertical">
@@ -473,7 +473,7 @@
                     android:paddingRight="10dp"
                     android:paddingEnd="10dp"
                     android:paddingBottom="10dp"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textColor="@color/gray"
                     android:layout_gravity="center_vertical"/>
 
@@ -537,7 +537,7 @@
                     android:paddingRight="10dp"
                     android:paddingEnd="10dp"
                     android:paddingBottom="10dp"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textColor="@color/gray"
                     android:layout_gravity="center_vertical"/>
 

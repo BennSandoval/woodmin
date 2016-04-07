@@ -1,9 +1,11 @@
 package app.bennsandoval.com.woodmin.fragments;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -27,10 +29,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
+import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.ResumeAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.models.DataResume;
@@ -38,6 +40,7 @@ import app.bennsandoval.com.woodmin.models.Resume;
 import app.bennsandoval.com.woodmin.models.orders.Order;
 import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class ResumeFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -106,6 +109,19 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                 R.color.holo_green_light,
                 R.color.holo_orange_light,
                 R.color.holo_red_light);
+
+        FloatingActionButton fab = (FloatingActionButton) rootView.findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    Intent orderIntent = new Intent(getActivity(), OrderNew.class);
+                    startActivity(orderIntent);
+
+                }
+            });
+        }
 
         return rootView;
     }
@@ -203,7 +219,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
 
                                 DataResume resumeDay = new DataResume();
                                 resumeDay.setField1(lastDateAnalyzed);
-                                resumeDay.setField2(items + " " + getString(R.string.items));
+                                resumeDay.setField2(getString(R.string.items, items));
                                 resumeDay.setField3("$"+total);
                                 resume.getData().add(resumeDay);
 
@@ -247,7 +263,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                             DataResume resumeProduct = new DataResume();
                             resumeProduct.setField1(product.getTitle());
                             resumeProduct.setField2("");
-                            resumeProduct.setField3(product.getStockQuantity() + " " + getString(R.string.items));
+                            resumeProduct.setField3(getString(R.string.items, product.getStockQuantity()));
                             resume.getData().add(resumeProduct);
 
                             if (resume.getData().size() == 3){

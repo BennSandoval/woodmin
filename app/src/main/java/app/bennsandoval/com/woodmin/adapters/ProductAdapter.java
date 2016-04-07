@@ -76,10 +76,10 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
 
             Picasso.with(mContext)
                     .load(product.getFeaturedSrc())
-                    .resize(100, 100)
+                    .resize(300, 300)
                     .centerCrop()
-                    .placeholder(R.drawable.cloud)
-                    .error(R.drawable.ic_action_cancel)
+                    .placeholder(R.color.colorPrimary)
+                    .error(R.color.red)
                     .into(holder.imageView);
 
             holder.txtName.setText(product.getTitle());

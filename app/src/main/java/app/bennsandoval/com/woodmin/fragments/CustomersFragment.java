@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -32,11 +33,13 @@ import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
+import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.CustomerAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.CustomerActions;
 import app.bennsandoval.com.woodmin.models.customers.Customer;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class CustomersFragment extends Fragment implements
         LoaderManager.LoaderCallbacks<Cursor>,
@@ -137,6 +140,19 @@ public class CustomersFragment extends Fragment implements
                 mSwipeLayout.setEnabled(enable);
             }
         });
+
+        FloatingActionButton fab = (FloatingActionButton) rootView.findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    Intent orderIntent = new Intent(getActivity(), OrderNew.class);
+                    startActivity(orderIntent);
+
+                }
+            });
+        }
 
         return rootView;
     }

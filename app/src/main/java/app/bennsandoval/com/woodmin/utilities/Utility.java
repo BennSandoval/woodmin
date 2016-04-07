@@ -37,7 +37,7 @@ public class Utility {
 
     public static String getPreferredServer(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getString(context.getString(R.string.pref_server),null);
+        return prefs.getString(context.getString(R.string.pref_server), null);
     }
 
     public static Long setPreferredLastSync(Context context, Long time) {
@@ -45,7 +45,7 @@ public class Utility {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putLong(context.getString(R.string.pref_last_update_key), time);
         editor.apply();
-        return prefs.getLong(context.getString(R.string.pref_last_update_key),0);
+        return prefs.getLong(context.getString(R.string.pref_last_update_key), 0);
     }
 
     public static void setPreferredUserSecret(Context context, String user, String secret) {
@@ -62,6 +62,19 @@ public class Utility {
         editor.putString(context.getString(R.string.pref_server), server);
         editor.apply();
         return prefs.getString(context.getString(R.string.pref_server),null);
+    }
+
+    public static String getPreferredShoppingCard(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        return prefs.getString(context.getString(R.string.pref_shopping_cart),null);
+    }
+
+    public static String setPreferredShoppingCard(Context context, String json) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(context.getString(R.string.pref_shopping_cart), json);
+        editor.apply();
+        return prefs.getString(context.getString(R.string.pref_shopping_cart),null);
     }
 
     public static SSLSocketFactory getSSLSocketFactory(){
@@ -101,5 +114,4 @@ public class Utility {
         };
         return allHostsValid;
     }
-
 }

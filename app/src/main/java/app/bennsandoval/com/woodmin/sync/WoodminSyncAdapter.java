@@ -60,7 +60,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     public static final String LOG_TAG = WoodminSyncAdapter.class.getSimpleName();
     // 60 seconds (1 minute) * 180 = 3 hours
-    public static final int SYNC_INTERVAL = 60 * 180;
+    public static final int SYNC_INTERVAL = 60 * 60;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
 
     private Woocommerce woocommerceApi;
@@ -147,36 +147,29 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             syncAll = true;
         }
 
+        //Shop
+        Handler handler = new Handler(Looper.getMainLooper());
+        Runnable runnableShop = new Runnable() {
+            public void run() {
+                synchronizeShop();
+            }
+        };
+        handler.post(runnableShop);
+
+        //Products
+        Runnable runnableProducts = new Runnable() {
+            public void run() {
+                synchronizeProducts(null);
+            }
+        };
+        handler.post(runnableProducts);
+
         if(syncAll) {
             Date lastSync = new Date(lastSyncTimeStamp);
             if(lastSyncTimeStamp == 0) {
                 lastSync = null;
             }
-            //Shop
-            Handler handler = new Handler(Looper.getMainLooper());
-            Runnable runnableShop = new Runnable() {
-                public void run() {
-                    synchronizeShop();
-                }
-            };
-            handler.post(runnableShop);
-
-            //Products
             final Date finalLastSync = lastSync;
-            Runnable runnableProducts = new Runnable() {
-                public void run() {
-                    synchronizeProducts(finalLastSync);
-                }
-            };
-            handler.post(runnableProducts);
-
-            //Orders
-            Runnable runnableOrders = new Runnable() {
-                public void run() {
-                    synchronizeOrders(finalLastSync);
-                }
-            };
-            handler.post(runnableOrders);
 
             //Customers
             Runnable runnableCustomers = new Runnable() {
@@ -186,34 +179,17 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             };
             handler.post(runnableCustomers);
 
-        } else {
-            Log.d(LOG_TAG, "Synchronization to early");
-            final Date lastSync = new Date(lastSyncTimeStamp);
-
-            //Shop
-            Handler handler = new Handler(Looper.getMainLooper());
-            Runnable runnableShop = new Runnable() {
-                public void run() {
-                    synchronizeShop();
-                }
-            };
-            handler.post(runnableShop);
-
-            //Products
-            Runnable runnableProducts = new Runnable() {
-                public void run() {
-                    synchronizeProducts(lastSync);
-                }
-            };
-            handler.post(runnableProducts);
-
             //Orders
             Runnable runnableOrders = new Runnable() {
                 public void run() {
-                    synchronizeOrders(lastSync);
+                    synchronizeOrders(finalLastSync);
                 }
             };
             handler.post(runnableOrders);
+
+        } else {
+            Log.d(LOG_TAG, "Synchronization to early");
+            final Date lastSync = new Date(lastSyncTimeStamp);
 
             //Customers
             Runnable runnableCustomers = new Runnable() {
@@ -222,6 +198,14 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             };
             handler.post(runnableCustomers);
+
+            //Orders
+            Runnable runnableOrders = new Runnable() {
+                public void run() {
+                    synchronizeOrders(lastSync);
+                }
+            };
+            handler.post(runnableOrders);
         }
     }
 
@@ -391,8 +375,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(2);
-
-        Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
         /*
         String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
@@ -578,8 +560,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(0);
-
-        Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
         /*
         String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;

@@ -2,11 +2,12 @@ package app.bennsandoval.com.woodmin.models.orders;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Item {
 
-    private int id;
+    private int id = -1;
     private String subtotal;
     @SerializedName("subtotal_tax")
     private String subtotalTax;
@@ -19,9 +20,9 @@ public class Item {
     private String taxClass;
     private String name;
     @SerializedName("product_id")
-    private int productId;
+    private int productId = -1;
     private String sku;
-    private List<MetaItem> meta;
+    private List<MetaItem> meta = new ArrayList<>();
     @SerializedName("cogs_cost")
     private String cogsCost;
     @SerializedName("cogs_total_cost")

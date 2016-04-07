@@ -154,8 +154,6 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 }
             });
         }
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -303,9 +301,9 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 String address = mOrderSelected.getBillingAddress().getAddressOne() + " " +
                         mOrderSelected.getBillingAddress().getAddressTwo() + " " +
                         mOrderSelected.getBillingAddress().getPostcode() + " " +
-                        mOrderSelected.getBillingAddress().getCountry() + " " +
                         mOrderSelected.getBillingAddress().getState() + " " +
-                        mOrderSelected.getBillingAddress().getCity();
+                        mOrderSelected.getBillingAddress().getCity() + " " +
+                        mOrderSelected.getBillingAddress().getCountry();
                 mBilling.setText(address);
 
             }
@@ -333,7 +331,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 }
             });
 
-            LinearLayout cart_details = (LinearLayout)findViewById(R.id.shopping_card_details);
+            LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
 
             List<String> ids = new ArrayList<>();
             List<String> parameters = new ArrayList<>();
@@ -412,7 +410,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                             .into(imageView);
                 }
 
-                cart_details.addView(child);
+                cardDetails.addView(child);
             }
             getNotes();
 
@@ -578,8 +576,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
                             }
-                            Gson gson = new GsonBuilder().create();
-                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, gson.toJson(order));
+                            orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, mGson.toJson(order));
                             orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
 
                             Uri insertedOrderUri = getContentResolver().insert(WoodminContract.OrdersEntry.CONTENT_URI, orderValues);

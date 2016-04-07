@@ -23,6 +23,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/title_activity_login"
         android:theme="@style/AppTheme">
+
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
@@ -45,6 +46,7 @@
                 android:name="android.app.default_searchable"
                 android:value=".activities.MainActivity" />
         </activity>
+
         <activity
             android:name=".activities.MainActivity"
             android:label="@string/app_name"
@@ -87,6 +89,7 @@
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
+
         <activity
             android:name=".activities.OrderDetail"
             android:label="@string/app_name"
@@ -104,6 +107,7 @@
                     android:path="/order"
                     android:scheme="app" />
             </intent-filter>
+
             <!-- Accepts URIs that begin with "http://app.woodmin.com/order" -->
             <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
@@ -118,15 +122,31 @@
                     android:scheme="http" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".activities.OrderLinesShip"
             android:label="@string/app_name"
             android:parentActivityName=".activities.OrderDetail"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="app.bennsandoval.com.woodmin.activities.OrderDetail" />
+        </activity>
+
+        <activity
+            android:name=".activities.OrderNew"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
+
+        </activity>
+
+        <activity
+            android:name=".activities.OrderAddProduct"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/PopupTheme">
+
         </activity>
 
         <!-- Caller info -->
@@ -139,7 +159,7 @@
         <service
             android:name=".services.HeadInfoService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
 
         <!-- Woodmin Aunthenticator -->
         <service android:name=".authenticator.WoodminAuthenticatorService">

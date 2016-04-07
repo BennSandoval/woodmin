@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -30,9 +31,12 @@ import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
+import app.bennsandoval.com.woodmin.activities.OrderAddProduct;
+import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.ProductAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class ProductsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
@@ -82,11 +86,10 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                 int position = mRecyclerView.getChildPosition(view);
                 mAdapter.getCursor().moveToPosition(position);
                 int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.ProductEntry.COLUMN_ID));
-/*
-                Intent orderIntent = new Intent(getActivity(), ProductDetail.class);
-                orderIntent.putExtra("product", idSelected);
-                startActivity(orderIntent);
-*/
+
+                Intent intent = new Intent(getActivity(), OrderAddProduct.class);
+                intent.putExtra("product", idSelected);
+                startActivity(intent);
             }
         };
 
@@ -130,6 +133,19 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                 mSwipeLayout.setEnabled(enable);
             }
         });
+
+        FloatingActionButton fab = (FloatingActionButton) rootView.findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    Intent orderIntent = new Intent(getActivity(), OrderNew.class);
+                    startActivity(orderIntent);
+
+                }
+            });
+        }
 
         return rootView;
     }
@@ -184,7 +200,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.d(LOG_TAG, "onCreateLoader");
 
-        String sortOrder = WoodminContract.ProductEntry.COLUMN_STOCK + " ASC";
+        String sortOrder = WoodminContract.ProductEntry.COLUMN_TITLE + " ASC";
         CursorLoader cursorLoader;
         Uri productsUri = WoodminContract.ProductEntry.CONTENT_URI;
         switch (id) {

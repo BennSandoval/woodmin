@@ -111,6 +111,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerC
                 Utility.setPreferredServer(getApplicationContext(), null);
                 Utility.setPreferredLastSync(getApplicationContext(), 0L);
                 Utility.setPreferredUserSecret(getApplicationContext(), null, null);
+                Utility.setPreferredShoppingCard(getApplicationContext(), null);
 
                 Intent main = new Intent(getApplicationContext(), LoginActivity.class);
                 startActivity(main);

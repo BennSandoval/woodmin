@@ -2,6 +2,7 @@ package app.bennsandoval.com.woodmin.models.orders;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -61,7 +62,7 @@ public class Order {
     private String viewOrderUrl;
 
     @SerializedName("line_items")
-    private List<Item> items;
+    private List<Item> items = new ArrayList<>();
 
     private Customer customer;
 
