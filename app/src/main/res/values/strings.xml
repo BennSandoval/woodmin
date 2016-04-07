@@ -77,7 +77,7 @@
     <string name="scan_instructions">Scan the bar code of the item and tap in the plus sign to confirm and process the next item in the order.</string>
     <string name="order_complete">Order complete</string>
     <string name="warning_more_items">Please, be careful this order contains more items for the same product, this is not the previous one.</string>
-    <string name="order_update_confirmation">Please confirm thi action, the order is gonna be mark as completed.</string>
+    <string name="order_update_confirmation">The order is gonna be mark as completed. Are you sure?</string>
     <string name="error_update">Something was wrong changing the status of the order</string>
     <string name="success_update">Order changed successfully</string>
     <string name="remove">Remove</string>
@@ -86,6 +86,7 @@
     <string name="error_add_quantity">Invalid quantity</string>
     <string name="clear">Remove all</string>
     <string name="add_cart">Add to shopping cart</string>
+    <string name="order_create_confirmation">The order is gonna be created and marked as completed. Are you sure?</string>
 
     <!--Product-->
     <string name="product_voice_search">product</string>

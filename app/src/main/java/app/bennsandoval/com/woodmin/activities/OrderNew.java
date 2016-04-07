@@ -1,7 +1,10 @@
 package app.bennsandoval.com.woodmin.activities;
 
+import android.app.AlertDialog;
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.database.Cursor;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -12,6 +15,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -107,7 +111,7 @@ public class OrderNew extends AppCompatActivity {
         clear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateProducts();
+                restoreProducts();
                 mOrderSelected.getItems().clear();
                 Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrderSelected));
                 finish();
@@ -205,14 +209,47 @@ public class OrderNew extends AppCompatActivity {
                         .error(R.drawable.ic_action_cancel)
                         .into(imageView);
             }
+            child.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    TextView sku = (TextView) v.findViewById(R.id.sku);
+                    Toast.makeText(getApplicationContext(), sku.getText().toString(), Toast.LENGTH_LONG).show();
+                }
+            });
 
             LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
             cardDetails.addView(child);
         }
         mPrice.setText(getString(R.string.price, String.valueOf(mTotal)));
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        if(fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderNew.this)
+                            .setTitle(getString(R.string.new_order_title))
+                            .setMessage(getString(R.string.order_create_confirmation))
+                            .setCancelable(false)
+                            .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    createOrder();
+                                }
+                            })
+                            .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                }
+                            });
+                    alertDialogBuilder.create().show();
+
+                }
+            });
+        }
     }
 
-    private void updateProducts() {
+    private void restoreProducts() {
 
         List<String> ids = new ArrayList<>();
         List<String> parameters = new ArrayList<>();
@@ -298,6 +335,9 @@ public class OrderNew extends AppCompatActivity {
 
         getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
 
+    }
+
+    private void createOrder() {
     }
 
 }

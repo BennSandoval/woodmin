@@ -200,11 +200,9 @@ public class OrderAddProduct extends AppCompatActivity {
                         for(Item itemOder :mOrder.getItems()) {
                             if(itemOder.getProductId() == mProductId) {
                                 if(mQuantity == 0) {
-                                    mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() + itemOder.getQuantity());
                                     item.setProductId(itemOder.getId());
                                     mOrder.getItems().remove(itemOder);
                                 } else {
-                                    mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() - mQuantity);
                                     itemOder.setQuantity(mQuantity);
                                     itemOder.setTotal(String.valueOf(mQuantity * mPrice));
                                     item = itemOder;
@@ -213,7 +211,6 @@ public class OrderAddProduct extends AppCompatActivity {
                             }
                         }
                         if(item.getProductId() < 0 && mQuantity > 0) {
-                            mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() - mQuantity);
                             item.setName(mProductSelected.getTitle());
                             item.setSku(mProductSelected.getSku());
                             item.setPrice(mProductSelected.getPrice());
@@ -242,6 +239,8 @@ public class OrderAddProduct extends AppCompatActivity {
 
     private void updateProduct() {
 
+        mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() - mQuantity);
+
         ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
 
         ContentValues productValues = new ContentValues();
@@ -260,7 +259,7 @@ public class OrderAddProduct extends AppCompatActivity {
             //TODO, CHANGE THIS APPROACH
             mProductSelected.setSku(variation.getSku());
             mProductSelected.setPrice(variation.getPrice());
-            mProductSelected.setStockQuantity(variation.getStockQuantity());
+            mProductSelected.setStockQuantity(variation.getStockQuantity() - mQuantity);
 
             ContentValues variationValues = new ContentValues();
             variationValues.put(WoodminContract.ProductEntry.COLUMN_ID, variation.getId());
