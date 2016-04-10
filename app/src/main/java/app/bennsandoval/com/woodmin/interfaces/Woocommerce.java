@@ -13,6 +13,7 @@ import app.bennsandoval.com.woodmin.models.shop.Shop;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.QueryMap;
@@ -46,6 +47,9 @@ public interface Woocommerce {
 
     @PUT("wc-api/v3/orders/{orderId}")
     Call<OrderResponse> updateOrder(@Path("orderId") String orderId,
-                                    @Body OrderUpdate user);
+                                    @Body OrderUpdate order);
+
+    @POST("wc-api/v3/orders")
+    Call<OrderResponse> insertOrder(@Body OrderResponse order);
 
 }

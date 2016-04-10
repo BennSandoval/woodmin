@@ -117,12 +117,19 @@
     <string name="default_country" translatable="false">MX</string>
     <string name="default_email" translatable="false">ventas@taloselectronics.com</string>
     <string name="default_phone" translatable="false">20165195</string>
+    <string name="default_payment_code" translatable="false">cod</string>
+    <string name="default_payment" translatable="false">Pago en persona</string>
+
+    <string name="default_shipping_method_id" translatable="false">local_pickup</string>
+    <string name="default_shipping_method_title" translatable="false">Pasar por el paquete</string>
+    <string name="default_shipping_total" translatable="false">0.00</string>
 
     <!-- Hint -->
     <string name="first_name_hint">First name</string>
     <string name="last_name_hint">Last name</string>
     <string name="email_hint">Email</string>
     <string name="phone_hint">Phone</string>
+    <string name="company_hint">Company</string>
 
     <string name="line_one_hint">Line one</string>
     <string name="line_two_hint">Line two</string>

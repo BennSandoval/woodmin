@@ -199,8 +199,8 @@ public class OrderLinesShip extends AppCompatActivity {
                 .load(mProductProcessing.getFeaturedSrc())
                 .resize(500, 500)
                 .centerCrop()
-                .placeholder(R.color.colorPrimary)
-                .error(R.color.colorAccent)
+                .placeholder(android.R.color.transparent)
+                .error(android.R.color.transparent)
                 .into(imageView);
 
         if(mOrderSelected.getStatus().toUpperCase().equals("COMPLETED")){

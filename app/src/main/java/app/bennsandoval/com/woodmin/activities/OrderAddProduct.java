@@ -137,8 +137,8 @@ public class OrderAddProduct extends AppCompatActivity {
                 .load(mProductSelected.getFeaturedSrc())
                 .resize(300, 300)
                 .centerCrop()
-                .placeholder(R.color.colorPrimary)
-                .error(R.color.colorAccent)
+                .placeholder(android.R.color.transparent)
+                .error(R.drawable.ic_action_cancel)
                 .into(image);
 
         remove.setOnClickListener(new View.OnClickListener() {

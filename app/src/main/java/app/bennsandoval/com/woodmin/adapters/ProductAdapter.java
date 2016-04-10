@@ -78,8 +78,8 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
                     .load(product.getFeaturedSrc())
                     .resize(300, 300)
                     .centerCrop()
-                    .placeholder(R.color.colorPrimary)
-                    .error(R.color.red)
+                    .placeholder(android.R.color.transparent)
+                    .error(R.drawable.ic_action_cancel)
                     .into(holder.imageView);
 
             holder.txtName.setText(product.getTitle());

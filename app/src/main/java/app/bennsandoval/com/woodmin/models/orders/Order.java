@@ -50,6 +50,9 @@ public class Order {
     private BillingAddress billingAddress;
     @SerializedName("shipping_address")
     private ShippingAddress shippingAddress;
+    @SerializedName("shipping_lines")
+    private List<ShippingLine> shippingLines = new ArrayList<>();
+
 
     private String note;
     @SerializedName("customer_ip")
@@ -234,6 +237,14 @@ public class Order {
         this.shippingAddress = shippingAddress;
     }
 
+    public List<ShippingLine> getShippingLines() {
+        return shippingLines;
+    }
+
+    public void setShippingLines(List<ShippingLine> shippingLines) {
+        this.shippingLines = shippingLines;
+    }
+
     public String getNote() {
         return note;
     }
@@ -289,4 +300,5 @@ public class Order {
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }
+
 }

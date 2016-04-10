@@ -31,7 +31,6 @@ public class LoginActivity extends AppCompatActivity {
 
     public final String LOG_TAG = LoginActivity.class.getSimpleName();
 
-    // UI references.
     private EditText mServerView;
     private EditText mUserView;
     private EditText mPasswordView;
