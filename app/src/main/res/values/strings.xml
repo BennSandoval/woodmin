@@ -87,6 +87,8 @@
     <string name="clear">Remove all</string>
     <string name="add_cart">Add to shopping cart</string>
     <string name="order_create_confirmation">The order is gonna be created and marked as completed. Are you sure?</string>
+    <string name="create_order">Creating order, please wait…</string>
+    <string name="finalize_order">Finalizing order, please wait…</string>
 
     <!--Product-->
     <string name="product_voice_search">product</string>
