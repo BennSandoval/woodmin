@@ -89,6 +89,7 @@
     <string name="order_create_confirmation">The order is gonna be created and marked as completed. Are you sure?</string>
     <string name="create_order">Creating order, please wait…</string>
     <string name="finalize_order">Finalizing order, please wait…</string>
+    <string name="invalid_items">Select at least one item</string>
 
     <!--Product-->
     <string name="product_voice_search">product</string>
@@ -107,9 +108,11 @@
     <string name="title_activity_order_lines_ship">OrderLinesShip</string>
 
     <!-- Default values -->
-    <string name="default_company" translatable="false">Talos Electronics</string>
-    <string name="default_first_name" translatable="false">Talos</string>
-    <string name="default_last_name" translatable="false">Electronics</string>
+    <string name="default_company" translatable="false"></string>
+    <string name="default_first_name" translatable="false"></string>
+    <string name="default_last_name" translatable="false"></string>
+    <string name="default_email" translatable="false"></string>
+    <string name="default_phone" translatable="false"></string>
 
     <string name="default_line_one" translatable="false">San Francisco #3477 Int 2</string>
     <string name="default_line_two" translatable="false">Colonia Chapalita</string>
@@ -117,8 +120,6 @@
     <string name="default_state" translatable="false">Jalisco</string>
     <string name="default_postal_code" translatable="false">44500</string>
     <string name="default_country" translatable="false">MX</string>
-    <string name="default_email" translatable="false">ventas@taloselectronics.com</string>
-    <string name="default_phone" translatable="false">20165195</string>
     <string name="default_payment_code" translatable="false">cod</string>
     <string name="default_payment" translatable="false">Pago en persona</string>
 

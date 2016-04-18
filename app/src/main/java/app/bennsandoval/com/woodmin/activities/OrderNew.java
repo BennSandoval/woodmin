@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.design.widget.FloatingActionButton;
@@ -20,6 +21,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
@@ -78,6 +81,11 @@ public class OrderNew extends AppCompatActivity {
             WoodminContract.ProductEntry.COLUMN_JSON,
     };
     private int COLUMN_PRODUCT_COLUMN_JSON = 1;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,8 +95,113 @@ public class OrderNew extends AppCompatActivity {
         mProgress = new ProgressDialog(OrderNew.this);
         mProgress.setTitle(getString(R.string.app_name));
 
+        mEmail = (EditText) findViewById(R.id.email);
+        mPhone = (EditText) findViewById(R.id.phone);
+        mPrice = (TextView) findViewById(R.id.price);
+        mCustomerFirst = (EditText) findViewById(R.id.customer_first);
+        mCustomerLast = (EditText) findViewById(R.id.customer_last);
+
+        mBillingCompany = (EditText) findViewById(R.id.company);
+
+        mBillingAddressOne = (EditText) findViewById(R.id.billing_address_one);
+        mBillingAddressTwo = (EditText) findViewById(R.id.billing_address_two);
+        mBillingAddressCity = (EditText) findViewById(R.id.billing_city);
+        mBillingAddressCountry = (EditText) findViewById(R.id.billing_country);
+        mBillingAddressCP = (EditText) findViewById(R.id.billing_postal_code);
+        mBillingAddressState = (EditText) findViewById(R.id.billing_state);
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        if (fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    if (mOrderSelected.getItems().size() > 0) {
+                        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderNew.this)
+                                .setTitle(getString(R.string.new_order_title))
+                                .setMessage(getString(R.string.order_create_confirmation))
+                                .setCancelable(true)
+                                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        createOrder();
+                                    }
+                                })
+                                .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                    }
+                                });
+                        alertDialogBuilder.create().show();
+                    } else {
+                        Toast.makeText(getApplicationContext(), getString(R.string.invalid_items), Toast.LENGTH_LONG).show();
+                    }
+
+                }
+            });
+        }
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshView();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        PaymentDetails paymentDetails = new PaymentDetails();
+        paymentDetails.setMethodId(getString(R.string.default_payment_code));
+        paymentDetails.setMethodTitle(getString(R.string.default_payment));
+        paymentDetails.setPaid(true);
+        mOrderSelected.setPaymentDetails(paymentDetails);
+
+        ShippingLine shippingLine = new ShippingLine();
+        shippingLine.setMethodId(getString(R.string.default_shipping_method_id));
+        shippingLine.setMethodTitle(getString(R.string.default_shipping_method_title));
+        shippingLine.setTotal(getString(R.string.default_shipping_method_title));
+        mOrderSelected.getShippingLines().add(shippingLine);
+
+        BillingAddress billingAddress = new BillingAddress();
+        billingAddress.setFirstName(mCustomerFirst.getText().toString());
+        billingAddress.setLastName(mCustomerLast.getText().toString());
+        billingAddress.setCompany(mBillingCompany.getText().toString());
+        billingAddress.setAddressOne(mBillingAddressOne.getText().toString());
+        billingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
+        billingAddress.setCity(mBillingAddressCity.getText().toString());
+        billingAddress.setState(mBillingAddressState.getText().toString());
+        billingAddress.setPostcode(mBillingAddressCP.getText().toString());
+        billingAddress.setCountry(mBillingAddressCountry.getText().toString());
+        billingAddress.setEmail(mEmail.getText().toString());
+        billingAddress.setPhone(mPhone.getText().toString());
+        mOrderSelected.setBillingAddress(billingAddress);
+
+        ShippingAddress shippingAddress = new ShippingAddress();
+        shippingAddress.setFirstName(mCustomerFirst.getText().toString());
+        shippingAddress.setLastName(mCustomerLast.getText().toString());
+        shippingAddress.setCompany(mBillingCompany.getText().toString());
+        shippingAddress.setAddressOne(mBillingAddressOne.getText().toString());
+        shippingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
+        shippingAddress.setCity(mBillingAddressCity.getText().toString());
+        shippingAddress.setState(mBillingAddressState.getText().toString());
+        shippingAddress.setPostcode(mBillingAddressCP.getText().toString());
+        shippingAddress.setCountry(mBillingAddressCountry.getText().toString());
+        mOrderSelected.setShippingAddress(shippingAddress);
+
+        String json = mGson.toJson(mOrderSelected);
+        Log.i(LOG_TAG, json);
+
+        Utility.setPreferredShoppingCard(getApplicationContext(), json);
+
+    }
+
+    private void refreshView() {
+        mTotal = 0;
         String json = Utility.getPreferredShoppingCard(getApplicationContext());
-        if(json != null) {
+        if (json != null) {
             mOrderSelected = mGson.fromJson(json, Order.class);
         } else {
             mOrderSelected = new Order();
@@ -111,23 +224,8 @@ public class OrderNew extends AppCompatActivity {
             Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrderSelected));
         }
 
-        mEmail = (EditText) findViewById(R.id.email);
-        mPhone = (EditText) findViewById(R.id.phone);
-        mPrice = (TextView) findViewById(R.id.price);
-        mCustomerFirst = (EditText) findViewById(R.id.customer_first);
-        mCustomerLast = (EditText) findViewById(R.id.customer_last);
-
-        mBillingCompany = (EditText) findViewById(R.id.company);
-
-        mBillingAddressOne = (EditText) findViewById(R.id.billing_address_one);
-        mBillingAddressTwo = (EditText) findViewById(R.id.billing_address_two);
-        mBillingAddressCity = (EditText) findViewById(R.id.billing_city);
-        mBillingAddressCountry = (EditText) findViewById(R.id.billing_country);
-        mBillingAddressCP = (EditText) findViewById(R.id.billing_postal_code);
-        mBillingAddressState = (EditText) findViewById(R.id.billing_state);
-
         Button clear = (Button) findViewById(R.id.clear);
-        if(mOrderSelected.getItems().size() == 0) {
+        if (mOrderSelected.getItems().size() == 0) {
             clear.setVisibility(View.GONE);
         }
         clear.setOnClickListener(new View.OnClickListener() {
@@ -156,131 +254,15 @@ public class OrderNew extends AppCompatActivity {
         mBillingAddressCity.setText(mOrderSelected.getBillingAddress().getCity());
         mBillingAddressCountry.setText(mOrderSelected.getBillingAddress().getCountry());
 
-        LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
-        if(cardDetails.getChildCount() == 2) {
-            List<String> ids = new ArrayList<>();
-            List<String> parameters = new ArrayList<>();
-
-            for(Item item:mOrderSelected.getItems()) {
-                ids.add(String.valueOf(item.getProductId()));
-                parameters.add("?");
-            }
-
-            String query = WoodminContract.ProductEntry.COLUMN_ID + " IN (" + TextUtils.join(", ", parameters) + ")";
-            Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
-                    PRODUCT_PROJECTION,
-                    query,
-                    ids.toArray(new String[ids.size()]),
-                    null);
-
-            List<Product> products = new ArrayList<>();
-            if(cursor != null) {
-                if (cursor.moveToFirst()) {
-                    do {
-                        json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
-                        if(json!=null) {
-                            Product product = mGson.fromJson(json, Product.class);
-                            products.add(product);
-                        }
-                    } while (cursor.moveToNext());
-                }
-                cursor.close();
-            }
-
-            for(Item item:mOrderSelected.getItems()) {
-                mTotal += Float.valueOf(item.getTotal());
-
-                View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
-                ImageView imageView = (ImageView) child.findViewById(R.id.image);
-                TextView quantity = (TextView) child.findViewById(R.id.quantity);
-                TextView description = (TextView) child.findViewById(R.id.description);
-                TextView price = (TextView) child.findViewById(R.id.price);
-                TextView sku = (TextView) child.findViewById(R.id.sku);
-
-                quantity.setText(String.valueOf(item.getQuantity()));
-                if(item.getMeta().size()>0){
-                    String descriptionWithMeta = item.getName();
-                    for(MetaItem itemMeta:item.getMeta()){
-                        descriptionWithMeta += "\n" + itemMeta.getLabel() + " " + itemMeta.getValue();
-                    }
-                    description.setText(descriptionWithMeta);
-                } else {
-                    description.setText(item.getName());
-                }
-                price.setText(getString(R.string.price, item.getTotal()));
-                sku.setText(item.getSku());
-
-                Product productForItem = null;
-                for(Product product: products) {
-                    if(product.getId() == item.getProductId()) {
-                        productForItem = product;
-                        break;
-                    }
-                    for(Variation variation:product.getVariations()) {
-                        if(variation.getId() == item.getProductId()) {
-                            productForItem = product;
-                            break;
-                        }
-                    }
-                }
-
-                if(productForItem == null) {
-                    Log.v(LOG_TAG, "Missing product");
-                } else {
-                    Picasso.with(getApplicationContext())
-                            .load(productForItem.getFeaturedSrc())
-                            .resize(50, 50)
-                            .centerCrop()
-                            .placeholder(android.R.color.transparent)
-                            .error(R.drawable.ic_action_cancel)
-                            .into(imageView);
-                }
-                child.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        TextView sku = (TextView) v.findViewById(R.id.sku);
-                        Toast.makeText(getApplicationContext(), sku.getText().toString(), Toast.LENGTH_LONG).show();
-                    }
-                });
-                cardDetails.addView(child);
-            }
+        LinearLayout cardDetails = (LinearLayout) findViewById(R.id.shopping_card_details);
+        while(cardDetails.getChildCount() > 2) {
+            cardDetails.removeViewAt(2);
         }
-
-        mPrice.setText(getString(R.string.price, String.valueOf(mTotal)));
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        if(fab != null) {
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-
-                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderNew.this)
-                            .setTitle(getString(R.string.new_order_title))
-                            .setMessage(getString(R.string.order_create_confirmation))
-                            .setCancelable(false)
-                            .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                    createOrder();
-                                }
-                            })
-                            .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                }
-                            });
-                    alertDialogBuilder.create().show();
-
-                }
-            });
-        }
-    }
-
-    private void restoreProducts() {
 
         List<String> ids = new ArrayList<>();
         List<String> parameters = new ArrayList<>();
 
-        for(Item item:mOrderSelected.getItems()) {
+        for (Item item : mOrderSelected.getItems()) {
             ids.add(String.valueOf(item.getProductId()));
             parameters.add("?");
         }
@@ -293,11 +275,132 @@ public class OrderNew extends AppCompatActivity {
                 null);
 
         List<Product> products = new ArrayList<>();
-        if(cursor != null) {
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
+                    if (json != null) {
+                        Product product = mGson.fromJson(json, Product.class);
+                        products.add(product);
+                    }
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+        for (Item item : mOrderSelected.getItems()) {
+            mTotal += Float.valueOf(item.getTotal());
+
+            View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
+            ImageView imageView = (ImageView) child.findViewById(R.id.image);
+            TextView quantity = (TextView) child.findViewById(R.id.quantity);
+            TextView description = (TextView) child.findViewById(R.id.description);
+            TextView price = (TextView) child.findViewById(R.id.price);
+            TextView sku = (TextView) child.findViewById(R.id.sku);
+
+            quantity.setText(String.valueOf(item.getQuantity()));
+            if (item.getMeta().size() > 0) {
+                String descriptionWithMeta = item.getName();
+                for (MetaItem itemMeta : item.getMeta()) {
+                    descriptionWithMeta += "\n" + itemMeta.getLabel() + " " + itemMeta.getValue();
+                }
+                description.setText(descriptionWithMeta);
+            } else {
+                description.setText(item.getName());
+            }
+            price.setText(getString(R.string.price, item.getTotal()));
+            sku.setText(item.getSku());
+
+            Product productForItem = null;
+            for (Product product : products) {
+                if (product.getId() == item.getProductId()) {
+                    productForItem = product;
+                    break;
+                }
+                for (Variation variation : product.getVariations()) {
+                    if (variation.getId() == item.getProductId()) {
+                        productForItem = product;
+                        break;
+                    }
+                }
+            }
+
+            if (productForItem == null) {
+                Log.v(LOG_TAG, "Missing product");
+            } else {
+                Picasso.with(getApplicationContext())
+                        .load(productForItem.getFeaturedSrc())
+                        .resize(50, 50)
+                        .centerCrop()
+                        .placeholder(android.R.color.transparent)
+                        .error(R.drawable.ic_action_cancel)
+                        .into(imageView);
+            }
+            child.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    TextView sku = (TextView) v.findViewById(R.id.sku);
+                    //Toast.makeText(getApplicationContext(), sku.getText().toString(), Toast.LENGTH_LONG).show();
+
+                    Product product = null;
+                    String query = WoodminContract.ProductEntry.COLUMN_SKU + " == ?" ;
+                    String[] parametersOrder = new String[]{ sku.getText().toString() };
+                    Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
+                            PRODUCT_PROJECTION,
+                            query,
+                            parametersOrder,
+                            null);
+                    if(cursor != null) {
+                        if (cursor.moveToFirst()) {
+                            do {
+                                String json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
+                                if(json!=null){
+                                    product = mGson.fromJson(json, Product.class);
+                                }
+                            } while (cursor.moveToNext());
+                        }
+                        cursor.close();
+                    }
+
+                    if(product != null) {
+                        Intent intent = new Intent(getApplicationContext(), OrderAddProduct.class);
+                        intent.putExtra("product", product.getId());
+                        startActivity(intent);
+                    }
+
+                }
+            });
+            cardDetails.addView(child);
+        }
+
+        mPrice.setText(getString(R.string.price, String.valueOf(mTotal)));
+
+    }
+
+    private void restoreProducts() {
+
+        List<String> ids = new ArrayList<>();
+        List<String> parameters = new ArrayList<>();
+
+        for (Item item : mOrderSelected.getItems()) {
+            ids.add(String.valueOf(item.getProductId()));
+            parameters.add("?");
+        }
+
+        String query = WoodminContract.ProductEntry.COLUMN_ID + " IN (" + TextUtils.join(", ", parameters) + ")";
+        Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
+                PRODUCT_PROJECTION,
+                query,
+                ids.toArray(new String[ids.size()]),
+                null);
+
+        List<Product> products = new ArrayList<>();
+        if (cursor != null) {
             if (cursor.moveToFirst()) {
                 do {
                     String json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
-                    if(json!=null) {
+                    if (json != null) {
                         Product product = mGson.fromJson(json, Product.class);
                         products.add(product);
                     }
@@ -308,11 +411,11 @@ public class OrderNew extends AppCompatActivity {
 
         ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
 
-        for(Item item:mOrderSelected.getItems()) {
-            for(Product product:products) {
+        for (Item item : mOrderSelected.getItems()) {
+            for (Product product : products) {
 
                 int stockRestore = product.getStockQuantity() + item.getQuantity();
-                if(product.getId() == item.getProductId()) {
+                if (product.getId() == item.getProductId()) {
                     product.setStockQuantity(stockRestore);
                 }
 
@@ -327,13 +430,13 @@ public class OrderNew extends AppCompatActivity {
 
                 productsValues.add(productValues);
 
-                for(Variation variation:product.getVariations()) {
+                for (Variation variation : product.getVariations()) {
 
                     //TODO, CHANGE THIS APPROACH
                     product.setSku(variation.getSku());
                     product.setPrice(variation.getPrice());
 
-                    if(variation.getId() == item.getProductId()) {
+                    if (variation.getId() == item.getProductId()) {
                         product.setStockQuantity(variation.getStockQuantity() + item.getQuantity());
                     }
 
@@ -374,7 +477,7 @@ public class OrderNew extends AppCompatActivity {
         mOrderSelected.setTotalLineItemsQuantity(-1);
         //mOrderSelected.setStatus("completed");
 
-        PaymentDetails paymentDetails =  new PaymentDetails();
+        PaymentDetails paymentDetails = new PaymentDetails();
         paymentDetails.setMethodId(getString(R.string.default_payment_code));
         paymentDetails.setMethodTitle(getString(R.string.default_payment));
         paymentDetails.setPaid(true);
@@ -386,7 +489,7 @@ public class OrderNew extends AppCompatActivity {
         shippingLine.setTotal(getString(R.string.default_shipping_method_title));
         mOrderSelected.getShippingLines().add(shippingLine);
 
-        BillingAddress billingAddress =  new BillingAddress();
+        BillingAddress billingAddress = new BillingAddress();
         billingAddress.setFirstName(mCustomerFirst.getText().toString());
         billingAddress.setLastName(mCustomerLast.getText().toString());
         billingAddress.setCompany(mBillingCompany.getText().toString());
@@ -400,7 +503,7 @@ public class OrderNew extends AppCompatActivity {
         billingAddress.setPhone(mPhone.getText().toString());
         mOrderSelected.setBillingAddress(billingAddress);
 
-        ShippingAddress shippingAddress =  new ShippingAddress();
+        ShippingAddress shippingAddress = new ShippingAddress();
         shippingAddress.setFirstName(mCustomerFirst.getText().toString());
         shippingAddress.setLastName(mCustomerLast.getText().toString());
         shippingAddress.setCompany(mBillingCompany.getText().toString());
@@ -412,7 +515,7 @@ public class OrderNew extends AppCompatActivity {
         shippingAddress.setCountry(mBillingAddressCountry.getText().toString());
         mOrderSelected.setShippingAddress(shippingAddress);
 
-        for(Item item:mOrderSelected.getItems()) {
+        for (Item item : mOrderSelected.getItems()) {
             item.setName(null);
             item.setPrice(null);
             item.setSku(null);
@@ -440,13 +543,13 @@ public class OrderNew extends AppCompatActivity {
                     ContentValues orderValues = new ContentValues();
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
-                    if(order.getCreatedAt() != null) {
+                    if (order.getCreatedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
                     }
-                    if(order.getUpdatedAt() != null) {
+                    if (order.getUpdatedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
                     }
-                    if(order.getCompletedAt() != null) {
+                    if (order.getCompletedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
@@ -468,7 +571,7 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME , order.getBillingAddress().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
@@ -493,13 +596,13 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
-                    if(order.getCustomer().getLastOrderDate() != null) {
+                    if (order.getCustomer().getLastOrderDate() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
-                    if(order.getCustomer().getBillingAddress()!= null){
+                    if (order.getCustomer().getBillingAddress() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
@@ -512,9 +615,9 @@ public class OrderNew extends AppCompatActivity {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
                     }
-                    if(order.getCustomer().getShippingAddress() != null){
+                    if (order.getCustomer().getShippingAddress() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME , order.getCustomer().getShippingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getCustomer().getShippingAddress().getLastName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
@@ -589,13 +692,13 @@ public class OrderNew extends AppCompatActivity {
                     ContentValues orderValues = new ContentValues();
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
-                    if(order.getCreatedAt() != null) {
+                    if (order.getCreatedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
                     }
-                    if(order.getUpdatedAt() != null) {
+                    if (order.getUpdatedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
                     }
-                    if(order.getCompletedAt() != null) {
+                    if (order.getCompletedAt() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
@@ -617,7 +720,7 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME , order.getBillingAddress().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
@@ -642,13 +745,13 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
-                    if(order.getCustomer().getLastOrderDate() != null) {
+                    if (order.getCustomer().getLastOrderDate() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
-                    if(order.getCustomer().getBillingAddress()!= null){
+                    if (order.getCustomer().getBillingAddress() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
@@ -661,9 +764,9 @@ public class OrderNew extends AppCompatActivity {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
                     }
-                    if(order.getCustomer().getShippingAddress() != null){
+                    if (order.getCustomer().getShippingAddress() != null) {
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME , order.getCustomer().getShippingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getCustomer().getShippingAddress().getLastName());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
                         orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());

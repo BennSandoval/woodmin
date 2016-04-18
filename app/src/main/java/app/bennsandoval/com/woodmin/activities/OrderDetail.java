@@ -337,88 +337,89 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 }
             });
 
-            if(cart.getChildCount() == 1) {
-                LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
+            while(cart.getChildCount() > 1) {
+                cart.removeViewAt(1);
+            }
+            LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
 
-                List<String> ids = new ArrayList<>();
-                List<String> parameters = new ArrayList<>();
+            List<String> ids = new ArrayList<>();
+            List<String> parameters = new ArrayList<>();
 
-                for(Item item:mOrderSelected.getItems()) {
-                    ids.add(String.valueOf(item.getProductId()));
-                    parameters.add("?");
-                }
+            for(Item item:mOrderSelected.getItems()) {
+                ids.add(String.valueOf(item.getProductId()));
+                parameters.add("?");
+            }
 
-                String query = WoodminContract.ProductEntry.COLUMN_ID + " IN (" + TextUtils.join(", ", parameters) + ")";
-                Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
-                        PRODUCT_PROJECTION,
-                        query,
-                        ids.toArray(new String[ids.size()]),
-                        null);
+            String query = WoodminContract.ProductEntry.COLUMN_ID + " IN (" + TextUtils.join(", ", parameters) + ")";
+            Cursor cursor = getContentResolver().query(WoodminContract.ProductEntry.CONTENT_URI,
+                    PRODUCT_PROJECTION,
+                    query,
+                    ids.toArray(new String[ids.size()]),
+                    null);
 
-                List<Product> products = new ArrayList<>();
-                if(cursor != null) {
-                    if (cursor.moveToFirst()) {
-                        do {
-                            String json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
-                            if(json!=null) {
-                                Product product = mGson.fromJson(json, Product.class);
-                                products.add(product);
-                            }
-                        } while (cursor.moveToNext());
-                    }
-                    cursor.close();
-                }
-
-                for(Item item:mOrderSelected.getItems()) {
-
-                    View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
-                    ImageView imageView = (ImageView) child.findViewById(R.id.image);
-                    TextView quantity = (TextView) child.findViewById(R.id.quantity);
-                    TextView description = (TextView) child.findViewById(R.id.description);
-                    TextView price = (TextView) child.findViewById(R.id.price);
-                    TextView sku = (TextView) child.findViewById(R.id.sku);
-
-                    quantity.setText(String.valueOf(item.getQuantity()));
-                    if(item.getMeta().size()>0){
-                        String descriptionWithMeta = item.getName();
-                        for(MetaItem itemMeta:item.getMeta()){
-                            descriptionWithMeta += "\n" + itemMeta.getLabel() + " " + itemMeta.getValue();
+            List<Product> products = new ArrayList<>();
+            if(cursor != null) {
+                if (cursor.moveToFirst()) {
+                    do {
+                        String json = cursor.getString(COLUMN_PRODUCT_COLUMN_JSON);
+                        if(json!=null) {
+                            Product product = mGson.fromJson(json, Product.class);
+                            products.add(product);
                         }
-                        description.setText(descriptionWithMeta);
-                    } else {
-                        description.setText(item.getName());
-                    }
-                    price.setText(getString(R.string.price, item.getTotal()));
-                    sku.setText(item.getSku());
+                    } while (cursor.moveToNext());
+                }
+                cursor.close();
+            }
 
-                    Product productForItem = null;
-                    for(Product product: products) {
-                        if(product.getId() == item.getProductId()) {
+            for(Item item:mOrderSelected.getItems()) {
+
+                View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
+                ImageView imageView = (ImageView) child.findViewById(R.id.image);
+                TextView quantity = (TextView) child.findViewById(R.id.quantity);
+                TextView description = (TextView) child.findViewById(R.id.description);
+                TextView price = (TextView) child.findViewById(R.id.price);
+                TextView sku = (TextView) child.findViewById(R.id.sku);
+
+                quantity.setText(String.valueOf(item.getQuantity()));
+                if(item.getMeta().size()>0){
+                    String descriptionWithMeta = item.getName();
+                    for(MetaItem itemMeta:item.getMeta()){
+                        descriptionWithMeta += "\n" + itemMeta.getLabel() + " " + itemMeta.getValue();
+                    }
+                    description.setText(descriptionWithMeta);
+                } else {
+                    description.setText(item.getName());
+                }
+                price.setText(getString(R.string.price, item.getTotal()));
+                sku.setText(item.getSku());
+
+                Product productForItem = null;
+                for(Product product: products) {
+                    if(product.getId() == item.getProductId()) {
+                        productForItem = product;
+                        break;
+                    }
+                    for(Variation variation:product.getVariations()) {
+                        if(variation.getId() == item.getProductId()) {
                             productForItem = product;
                             break;
                         }
-                        for(Variation variation:product.getVariations()) {
-                            if(variation.getId() == item.getProductId()) {
-                                productForItem = product;
-                                break;
-                            }
-                        }
                     }
-
-                    if(productForItem == null) {
-                        Log.v(LOG_TAG, "Missing product");
-                    } else {
-                        Picasso.with(getApplicationContext())
-                                .load(productForItem.getFeaturedSrc())
-                                .resize(50, 50)
-                                .centerCrop()
-                                .placeholder(R.drawable.cloud)
-                                .error(R.drawable.ic_action_cancel)
-                                .into(imageView);
-                    }
-
-                    cardDetails.addView(child);
                 }
+
+                if(productForItem == null) {
+                    Log.v(LOG_TAG, "Missing product");
+                } else {
+                    Picasso.with(getApplicationContext())
+                            .load(productForItem.getFeaturedSrc())
+                            .resize(50, 50)
+                            .centerCrop()
+                            .placeholder(android.R.color.transparent)
+                            .error(R.drawable.ic_action_cancel)
+                            .into(imageView);
+                }
+
+                cardDetails.addView(child);
             }
 
             getNotes();
