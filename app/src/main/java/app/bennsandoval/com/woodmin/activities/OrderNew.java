@@ -86,6 +86,7 @@ public class OrderNew extends AppCompatActivity {
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    private boolean mSaveIncomplete = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,49 +153,50 @@ public class OrderNew extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if(mSaveIncomplete) {
+            PaymentDetails paymentDetails = new PaymentDetails();
+            paymentDetails.setMethodId(getString(R.string.default_payment_code));
+            paymentDetails.setMethodTitle(getString(R.string.default_payment));
+            paymentDetails.setPaid(true);
+            mOrderSelected.setPaymentDetails(paymentDetails);
 
-        PaymentDetails paymentDetails = new PaymentDetails();
-        paymentDetails.setMethodId(getString(R.string.default_payment_code));
-        paymentDetails.setMethodTitle(getString(R.string.default_payment));
-        paymentDetails.setPaid(true);
-        mOrderSelected.setPaymentDetails(paymentDetails);
+            ShippingLine shippingLine = new ShippingLine();
+            shippingLine.setMethodId(getString(R.string.default_shipping_method_id));
+            shippingLine.setMethodTitle(getString(R.string.default_shipping_method_title));
+            shippingLine.setTotal(getString(R.string.default_shipping_method_title));
+            mOrderSelected.getShippingLines().add(shippingLine);
 
-        ShippingLine shippingLine = new ShippingLine();
-        shippingLine.setMethodId(getString(R.string.default_shipping_method_id));
-        shippingLine.setMethodTitle(getString(R.string.default_shipping_method_title));
-        shippingLine.setTotal(getString(R.string.default_shipping_method_title));
-        mOrderSelected.getShippingLines().add(shippingLine);
+            BillingAddress billingAddress = new BillingAddress();
+            billingAddress.setFirstName(mCustomerFirst.getText().toString());
+            billingAddress.setLastName(mCustomerLast.getText().toString());
+            billingAddress.setCompany(mBillingCompany.getText().toString());
+            billingAddress.setAddressOne(mBillingAddressOne.getText().toString());
+            billingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
+            billingAddress.setCity(mBillingAddressCity.getText().toString());
+            billingAddress.setState(mBillingAddressState.getText().toString());
+            billingAddress.setPostcode(mBillingAddressCP.getText().toString());
+            billingAddress.setCountry(mBillingAddressCountry.getText().toString());
+            billingAddress.setEmail(mEmail.getText().toString());
+            billingAddress.setPhone(mPhone.getText().toString());
+            mOrderSelected.setBillingAddress(billingAddress);
 
-        BillingAddress billingAddress = new BillingAddress();
-        billingAddress.setFirstName(mCustomerFirst.getText().toString());
-        billingAddress.setLastName(mCustomerLast.getText().toString());
-        billingAddress.setCompany(mBillingCompany.getText().toString());
-        billingAddress.setAddressOne(mBillingAddressOne.getText().toString());
-        billingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
-        billingAddress.setCity(mBillingAddressCity.getText().toString());
-        billingAddress.setState(mBillingAddressState.getText().toString());
-        billingAddress.setPostcode(mBillingAddressCP.getText().toString());
-        billingAddress.setCountry(mBillingAddressCountry.getText().toString());
-        billingAddress.setEmail(mEmail.getText().toString());
-        billingAddress.setPhone(mPhone.getText().toString());
-        mOrderSelected.setBillingAddress(billingAddress);
+            ShippingAddress shippingAddress = new ShippingAddress();
+            shippingAddress.setFirstName(mCustomerFirst.getText().toString());
+            shippingAddress.setLastName(mCustomerLast.getText().toString());
+            shippingAddress.setCompany(mBillingCompany.getText().toString());
+            shippingAddress.setAddressOne(mBillingAddressOne.getText().toString());
+            shippingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
+            shippingAddress.setCity(mBillingAddressCity.getText().toString());
+            shippingAddress.setState(mBillingAddressState.getText().toString());
+            shippingAddress.setPostcode(mBillingAddressCP.getText().toString());
+            shippingAddress.setCountry(mBillingAddressCountry.getText().toString());
+            mOrderSelected.setShippingAddress(shippingAddress);
 
-        ShippingAddress shippingAddress = new ShippingAddress();
-        shippingAddress.setFirstName(mCustomerFirst.getText().toString());
-        shippingAddress.setLastName(mCustomerLast.getText().toString());
-        shippingAddress.setCompany(mBillingCompany.getText().toString());
-        shippingAddress.setAddressOne(mBillingAddressOne.getText().toString());
-        shippingAddress.setAddressTwo(mBillingAddressTwo.getText().toString());
-        shippingAddress.setCity(mBillingAddressCity.getText().toString());
-        shippingAddress.setState(mBillingAddressState.getText().toString());
-        shippingAddress.setPostcode(mBillingAddressCP.getText().toString());
-        shippingAddress.setCountry(mBillingAddressCountry.getText().toString());
-        mOrderSelected.setShippingAddress(shippingAddress);
+            String json = mGson.toJson(mOrderSelected);
+            Log.i(LOG_TAG, json);
 
-        String json = mGson.toJson(mOrderSelected);
-        Log.i(LOG_TAG, json);
-
-        Utility.setPreferredShoppingCard(getApplicationContext(), json);
+            Utility.setPreferredShoppingCard(getApplicationContext(), json);
+        }
 
     }
 
@@ -232,8 +234,8 @@ public class OrderNew extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 restoreProducts();
-                mOrderSelected.getItems().clear();
-                Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrderSelected));
+                Utility.setPreferredShoppingCard(getApplicationContext(), null);
+                mSaveIncomplete = false;
                 finish();
             }
         });
@@ -288,7 +290,10 @@ public class OrderNew extends AppCompatActivity {
             cursor.close();
         }
 
-        for (Item item : mOrderSelected.getItems()) {
+        for (final Item item : mOrderSelected.getItems()) {
+            if(item.getTotal() == null){
+                item.setTotal("0");
+            }
             mTotal += Float.valueOf(item.getTotal());
 
             View child = getLayoutInflater().inflate(R.layout.activity_order_item, null);
@@ -367,6 +372,11 @@ public class OrderNew extends AppCompatActivity {
                         Intent intent = new Intent(getApplicationContext(), OrderAddProduct.class);
                         intent.putExtra("product", product.getId());
                         startActivity(intent);
+                    } else {
+                        mOrderSelected.getItems().remove(item);
+                        String json = mGson.toJson(mOrderSelected);
+                        Utility.setPreferredShoppingCard(getApplicationContext(), json);
+                        refreshView();
                     }
 
                 }
@@ -634,7 +644,6 @@ public class OrderNew extends AppCompatActivity {
                     Log.d(LOG_TAG, "Orders successful updated ID: " + orderId);
 
                     finalizeOrder(order);
-                    Utility.setPreferredShoppingCard(getApplicationContext(), null);
 
                 } else {
                     runOnUiThread(new Runnable() {
@@ -782,8 +791,12 @@ public class OrderNew extends AppCompatActivity {
                     long orderId = ContentUris.parseId(insertedOrderUri);
                     Log.d(LOG_TAG, "Orders successful updated ID: " + orderId);
 
+                    Utility.setPreferredShoppingCard(getApplicationContext(), null);
+                    mSaveIncomplete = false;
+
                     getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
                     finish();
+
                 } else {
                     Log.e(LOG_TAG, "onFailure ");
                     runOnUiThread(new Runnable() {
