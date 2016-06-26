@@ -8,9 +8,13 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Editable;
 import android.text.Html;
 import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -30,6 +34,8 @@ import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.models.products.Variation;
 
 public class OrderLinesShip extends AppCompatActivity {
+
+    private final String LOG_TAG = OrderLinesShip.class.getSimpleName();
 
     private int mIndexProducts = 0;
     private int mCounterPerItem = 1;
@@ -112,41 +118,35 @@ public class OrderLinesShip extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                mCounterPerItem ++;
-                if(mItemProcessing.getQuantity() >= mCounterPerItem) {
-
-                    Snackbar.make(view, mProductProcessing.getTitle() + " " + getString(R.string.counter_process, mCounterPerItem, mItemProcessing.getQuantity()), Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-
-                    refreshDataCurrentItem();
-
-                } else {
-
-                    mIndexProducts++;
-                    if(mIndexProducts < mProducts.size()) {
-
-                        mCounterPerItem = 1;
-                        searchItem();
-
-                        Snackbar.make(view, mProductProcessing.getTitle() + " " + getString(R.string.counter_process, mCounterPerItem, mItemProcessing.getQuantity()), Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-
-                        refreshDataCurrentItem();
-
-                    } else {
-
-                        finish();
-
-                    }
-                }
-
+                goToNextItem(view);
             }
         });
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         searchItem();
         refreshDataCurrentItem();
+
+        EditText scan = (EditText) findViewById(R.id.scan);
+        scan.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence sentence, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence sentence, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                String code = editable.toString();
+                Log.d(LOG_TAG, "afterTextChanged " + code);
+                if(code.toLowerCase().startsWith(String.valueOf(mProductProcessing.getId()))) {
+                    goToNextItem(null);
+                }
+            }
+        });
 
     }
 
@@ -212,7 +212,7 @@ public class OrderLinesShip extends AppCompatActivity {
         }
         txtSku.setText(mProductProcessing.getSku());
         txtOrder.setText(mOrderSelected.getOrderNumber());
-        txtTitle.setText(mProductProcessing.getTitle());
+        txtTitle.setText("(" + mProductProcessing.getId() + ") " + mProductProcessing.getTitle());
         txtPrice.setText("$" + mProductProcessing.getPrice());
         txtStock.setText(String.valueOf(mProductProcessing.getStockQuantity()));
         txtDescription.setText(Html.fromHtml(mProductProcessing.getDescription()).toString());
@@ -221,4 +221,32 @@ public class OrderLinesShip extends AppCompatActivity {
 
     }
 
+    private void goToNextItem(View view) {
+        EditText scan = (EditText) findViewById(R.id.scan);
+        scan.setText("");
+        mCounterPerItem ++;
+        if(mItemProcessing.getQuantity() >= mCounterPerItem) {
+
+            if(view != null) {
+                Snackbar.make(view, mProductProcessing.getTitle() + " " + getString(R.string.counter_process, mCounterPerItem, mItemProcessing.getQuantity()), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+            refreshDataCurrentItem();
+
+        } else {
+
+            mIndexProducts++;
+            if(mIndexProducts < mProducts.size()) {
+                mCounterPerItem = 1;
+                searchItem();
+                if(view != null) {
+                    Snackbar.make(view, mProductProcessing.getTitle() + " " + getString(R.string.counter_process, mCounterPerItem, mItemProcessing.getQuantity()), Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+                refreshDataCurrentItem();
+            } else {
+                finish();
+            }
+        }
+    }
 }
