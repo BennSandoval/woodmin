@@ -3,7 +3,6 @@ package app.bennsandoval.com.woodmin.utilities;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-
 import java.security.cert.X509Certificate;
 
 import javax.net.ssl.HostnameVerifier;
@@ -19,6 +18,8 @@ import app.bennsandoval.com.woodmin.R;
  * Created by Mackbook on 12/23/14.
  */
 public class Utility {
+
+    public static final String LOG_TAG = Utility.class.getSimpleName();
 
     public static String getPreferredUser(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
@@ -114,4 +115,5 @@ public class Utility {
         };
         return allHostsValid;
     }
+
 }

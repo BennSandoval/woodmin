@@ -14,10 +14,12 @@ import android.content.SyncRequest;
 import android.content.SyncResult;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.app.NotificationCompat;
@@ -26,12 +28,18 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import app.bennsandoval.com.woodmin.R;
@@ -42,6 +50,7 @@ import app.bennsandoval.com.woodmin.models.orders.Count;
 import app.bennsandoval.com.woodmin.models.customers.Customer;
 import app.bennsandoval.com.woodmin.models.orders.Order;
 import app.bennsandoval.com.woodmin.models.orders.Orders;
+import app.bennsandoval.com.woodmin.models.products.Images;
 import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.models.products.Products;
 import app.bennsandoval.com.woodmin.models.products.Variation;
@@ -78,6 +87,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private int pageCustomer= 0;
 
     private Gson gson = new GsonBuilder().create();
+
+    final Set<Target> protectedFromGarbageCollectorTargets = new HashSet<>();
 
     public WoodminSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -493,6 +504,56 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                     ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
                     for (Product product : response.body().getProducts()) {
+
+                        for(Images image : product.getImages()) {
+
+                            final String folder = "Woodmin/" + product.getId();
+                            final String filename =  image.getTitle() + ".jpg";
+
+                            Target folderTarget = new Target() {
+                                @Override
+                                public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+                                    new Thread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                File directory = Environment.getExternalStoragePublicDirectory((Environment.DIRECTORY_PICTURES));
+                                                File woodmin = new File(directory + "/" + folder);
+                                                woodmin.mkdirs();
+                                                File file = new File(woodmin + "/" + filename);
+                                                file.createNewFile();
+
+                                                FileOutputStream out = new FileOutputStream(file);
+                                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                                                out.flush();
+                                                out.close();
+                                                Log.v(LOG_TAG, "Product folder: " + folder +  " image: " + filename);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                                Log.e("IOException", e.getLocalizedMessage());
+                                            }
+                                            protectedFromGarbageCollectorTargets.remove(this);
+                                        }
+                                    }).start();
+                                }
+
+                                @Override
+                                public void onBitmapFailed(Drawable errorDrawable) {
+                                    Log.e(LOG_TAG, "onBitmapFailed");
+                                    protectedFromGarbageCollectorTargets.remove(this);
+                                }
+
+                                @Override
+                                public void onPrepareLoad(Drawable placeHolderDrawable) {
+                                }
+
+                            };
+                            protectedFromGarbageCollectorTargets.add(folderTarget);
+
+                            Picasso.with(getContext())
+                                .load(image.getSrc())
+                                .into(folderTarget);
+                        }
 
                         ContentValues productValues = new ContentValues();
                         productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
