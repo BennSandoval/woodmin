@@ -3,7 +3,6 @@ package app.bennsandoval.com.woodmin.services;
 import android.app.Service;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.IBinder;
 import android.util.DisplayMetrics;
@@ -66,6 +65,7 @@ public class HeadInfoService extends Service {
             Gson gson = new GsonBuilder().create();
 
             //Search in orders by number
+/*
             String[] projectionOrders = {
                     WoodminContract.OrdersEntry.COLUMN_JSON,
             };
@@ -78,6 +78,7 @@ public class HeadInfoService extends Service {
                     selectionOrder,
                     selectionOrderArgs,
                     null);
+*/
 
             //Search in customers by number
             String[] projectionCustomer = {
@@ -294,6 +295,9 @@ public class HeadInfoService extends Service {
                             LinearLayout contentLayout = (LinearLayout) child.findViewById(R.id.head_info_content);
 
                             //Search in orders by customer
+                            String[] projectionOrders = {
+                                    WoodminContract.OrdersEntry.COLUMN_JSON,
+                            };
                             String selectionOrderByCustomer = WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID + " = ?" ;
                             String[] selectionOrderByCustomerArgs = new String[]{ String.valueOf(customer.getId()) };
                             Cursor cursorOrderByCustomer = getContentResolver().query(WoodminContract.OrdersEntry.CONTENT_URI,
@@ -357,6 +361,7 @@ public class HeadInfoService extends Service {
                                         contentLayout.addView(orderViewChild,orderViewChildParams);
                                     }
                                 } while (cursorOrderByCustomer.moveToNext());
+                                cursorOrderByCustomer.close();
                             }
 
                             listContainer.addView(child);
@@ -364,6 +369,7 @@ public class HeadInfoService extends Service {
                             //mCustomers.add(customer);
                         }
                     } while (cursorCustomer.moveToNext());
+                    cursorCustomer.close();
                 }
             }
 

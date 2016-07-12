@@ -22,6 +22,7 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
     private Context mContext;
     private int mLayoutResourceId;
     private View.OnClickListener mOnClickListener;
+    private Gson mGson = new GsonBuilder().create();
 
     public ProductAdapter(Context context, int layoutResourceId, Cursor cursor, View.OnClickListener onClickListener){
         super(context,cursor);
@@ -60,11 +61,10 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
 
     @Override
     public void onBindViewHolder(ViewHolder holder, Cursor cursor) {
-        int id = cursor.getInt(cursor.getColumnIndexOrThrow(WoodminContract.ProductEntry.COLUMN_ID));
+        //int id = cursor.getInt(cursor.getColumnIndexOrThrow(WoodminContract.ProductEntry.COLUMN_ID));
         String json = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.ProductEntry.COLUMN_JSON));
         if(json!=null) {
-            Gson gson = new GsonBuilder().create();
-            Product product = gson.fromJson(json, Product.class);
+            Product product = mGson.fromJson(json, Product.class);
 
             if(product.getStockQuantity() > 0){
                 holder.txtName.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
@@ -75,12 +75,12 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
             }
 
             Picasso.with(mContext)
-                    .load(product.getFeaturedSrc())
-                    .resize(300, 300)
-                    .centerCrop()
-                    .placeholder(android.R.color.transparent)
-                    .error(R.drawable.ic_action_cancel)
-                    .into(holder.imageView);
+                .load(product.getFeaturedSrc())
+                .resize(300, 300)
+                .centerCrop()
+                .placeholder(android.R.color.transparent)
+                .error(R.drawable.ic_action_cancel)
+                .into(holder.imageView);
 
             holder.txtName.setText(product.getTitle());
             holder.txtPrice.setText(mContext.getString(R.string.price, product.getPrice()));

@@ -7,6 +7,7 @@ import android.provider.BaseColumns;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class WoodminContract {
 
@@ -26,12 +27,12 @@ public class WoodminContract {
     public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
     public static String getDbDateString(Date date){
-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
         return sdf.format(date);
     }
 
     public static Date getDateFromDbString(String dateText) throws ParseException {
-        SimpleDateFormat dbDateFormat = new SimpleDateFormat(DATE_FORMAT);
+        SimpleDateFormat dbDateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
         return dbDateFormat.parse(dateText);
     }
 

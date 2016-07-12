@@ -20,8 +20,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.v7.app.NotificationCompat;
 import android.util.Base64;
 import android.util.Log;
@@ -39,7 +37,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import app.bennsandoval.com.woodmin.R;
@@ -71,6 +72,12 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     // 60 seconds (1 minute) * 180 = 3 hours
     public static final int SYNC_INTERVAL = 60 * 60;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
+
+    private ArrayList<ContentValues> productsValues = new ArrayList<>();
+    private ArrayList<ContentValues> customersValues = new ArrayList<>();
+    private ArrayList<ContentValues> ordersValues = new ArrayList<>();
+
+    private ThreadPoolExecutor threadPoolExecutor;
 
     private Woocommerce woocommerceApi;
 
@@ -158,6 +165,42 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             syncAll = true;
         }
 
+
+        Date lastSync = new Date(lastSyncTimeStamp);
+        if(syncAll && lastSyncTimeStamp == 0) {
+            lastSync = null;
+        }
+        final Date finalLastSync = lastSync;
+
+        threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
+        //Shop
+        Runnable runnableShop = new Runnable() {
+            public void run() {
+                synchronizeShop();
+            }
+        };
+        threadPoolExecutor.submit(runnableShop);
+        //Products
+        Runnable runnableProducts = new Runnable() {
+            public void run() {
+                synchronizeProducts(null);
+            }
+        };
+        threadPoolExecutor.submit(runnableProducts);
+        //Customers
+        Runnable runnableCustomers = new Runnable() {
+            public void run() {
+                synchronizeCustomers(finalLastSync);
+            }
+        };
+        threadPoolExecutor.submit(runnableCustomers);
+        Runnable runnableOrders = new Runnable() {
+            public void run() {
+                synchronizeOrders(finalLastSync);
+            }
+        };
+        threadPoolExecutor.submit(runnableOrders);
+        /*
         //Shop
         Handler handler = new Handler(Looper.getMainLooper());
         Runnable runnableShop = new Runnable() {
@@ -175,48 +218,71 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         };
         handler.post(runnableProducts);
 
-        if(syncAll) {
-            Date lastSync = new Date(lastSyncTimeStamp);
-            if(lastSyncTimeStamp == 0) {
-                lastSync = null;
+        //Customers
+        Runnable runnableCustomers = new Runnable() {
+            public void run() {
+                synchronizeCustomers(finalLastSync);
             }
-            final Date finalLastSync = lastSync;
+        };
+        handler.post(runnableCustomers);
 
-            //Customers
-            Runnable runnableCustomers = new Runnable() {
-                public void run() {
-                    synchronizeCustomers(finalLastSync);
+        //Orders
+        Runnable runnableOrders = new Runnable() {
+            public void run() {
+                synchronizeOrders(finalLastSync);
+            }
+        };
+        handler.post(runnableOrders);
+        */
+    }
+
+    private void getImages(Product product) {
+        for(Images image : product.getImages()) {
+            final String folder = "Woodmin/" + product.getId();
+            final String filename =  image.getTitle() + ".jpg";
+            Target folderTarget = new Target() {
+                @Override
+                public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+                    Runnable runnableImages = new Runnable() {
+                        public void run() {
+                            try {
+                                File directory = Environment.getExternalStoragePublicDirectory((Environment.DIRECTORY_PICTURES));
+                                File woodmin = new File(directory + "/" + folder);
+                                woodmin.mkdirs();
+                                File file = new File(woodmin + "/" + filename);
+                                file.createNewFile();
+
+                                FileOutputStream out = new FileOutputStream(file);
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                                out.flush();
+                                out.close();
+                                Log.v(LOG_TAG, "Product folder: " + folder +  " image: " + filename);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Log.e("IOException", e.getLocalizedMessage());
+                            }
+                            protectedFromGarbageCollectorTargets.remove(this);
+                        }
+                    };
+                    threadPoolExecutor.submit(runnableImages);
                 }
-            };
-            handler.post(runnableCustomers);
 
-            //Orders
-            Runnable runnableOrders = new Runnable() {
-                public void run() {
-                    synchronizeOrders(finalLastSync);
+                @Override
+                public void onBitmapFailed(Drawable errorDrawable) {
+                    Log.e(LOG_TAG, "onBitmapFailed");
+                    protectedFromGarbageCollectorTargets.remove(this);
                 }
-            };
-            handler.post(runnableOrders);
 
-        } else {
-            Log.d(LOG_TAG, "Synchronization to early");
-            final Date lastSync = new Date(lastSyncTimeStamp);
-
-            //Customers
-            Runnable runnableCustomers = new Runnable() {
-                public void run() {
-                    synchronizeCustomers(lastSync);
+                @Override
+                public void onPrepareLoad(Drawable placeHolderDrawable) {
                 }
-            };
-            handler.post(runnableCustomers);
 
-            //Orders
-            Runnable runnableOrders = new Runnable() {
-                public void run() {
-                    synchronizeOrders(lastSync);
-                }
             };
-            handler.post(runnableOrders);
+            protectedFromGarbageCollectorTargets.add(folderTarget);
+
+            Picasso.with(getContext())
+                    .load(image.getSrc())
+                    .into(folderTarget);
         }
     }
 
@@ -266,7 +332,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         Log.v(LOG_TAG, "Customers " + ordersRowsDisabled + " disabled");
                         Log.v(LOG_TAG, "Customers " + sizeOrders + " to sync");
                         */
-
+                        customersValues = new ArrayList<>();
                         synchronizeBatchCustomers(date);
                     }
 
@@ -324,7 +390,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(2, notification);
 
-                    ArrayList<ContentValues> customersValues = new ArrayList<ContentValues>();
+
                     for (Customer customer : response.body().getCustomers()) {
 
                         ContentValues customerValues = new ContentValues();
@@ -354,11 +420,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                         customersValues.add(customerValues);
                     }
-
-                    ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
-                    customersValuesArray = customersValues.toArray(customersValuesArray);
-                    int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
-                    Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
                 }
 
                 if (pageCustomer == 0 || (sizePageCustomer * pageCustomer) < sizeCustomers) {
@@ -386,6 +447,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(2);
+
+        ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
+        customersValuesArray = customersValues.toArray(customersValuesArray);
+        int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
+        Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
 
         /*
         String query = WoodminContract.CustomerEntry.COLUMN_ENABLE + " = ?" ;
@@ -446,6 +512,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         Log.v(LOG_TAG, "Products " + sizeOrders + " to sync");
                         */
 
+                        productsValues = new ArrayList<>();
                         synchronizeBatchProducts(date);
                     }
                 }
@@ -467,7 +534,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         HashMap<String, String> options = new HashMap<>();
         options.put("filter[limit]", String.valueOf(sizePageProduct));
         if(date != null) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             options.put("filter[updated_at_min]", dateFormat.format(date));
         }
         options.put("page", String.valueOf(pageProduct));
@@ -502,58 +569,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(0, notification);
 
-                    ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
+                    //ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
                     for (Product product : response.body().getProducts()) {
 
-                        for(Images image : product.getImages()) {
-
-                            final String folder = "Woodmin/" + product.getId();
-                            final String filename =  image.getTitle() + ".jpg";
-
-                            Target folderTarget = new Target() {
-                                @Override
-                                public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-                                    new Thread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            try {
-                                                File directory = Environment.getExternalStoragePublicDirectory((Environment.DIRECTORY_PICTURES));
-                                                File woodmin = new File(directory + "/" + folder);
-                                                woodmin.mkdirs();
-                                                File file = new File(woodmin + "/" + filename);
-                                                file.createNewFile();
-
-                                                FileOutputStream out = new FileOutputStream(file);
-                                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-                                                out.flush();
-                                                out.close();
-                                                Log.v(LOG_TAG, "Product folder: " + folder +  " image: " + filename);
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
-                                                Log.e("IOException", e.getLocalizedMessage());
-                                            }
-                                            protectedFromGarbageCollectorTargets.remove(this);
-                                        }
-                                    }).start();
-                                }
-
-                                @Override
-                                public void onBitmapFailed(Drawable errorDrawable) {
-                                    Log.e(LOG_TAG, "onBitmapFailed");
-                                    protectedFromGarbageCollectorTargets.remove(this);
-                                }
-
-                                @Override
-                                public void onPrepareLoad(Drawable placeHolderDrawable) {
-                                }
-
-                            };
-                            protectedFromGarbageCollectorTargets.add(folderTarget);
-
-                            Picasso.with(getContext())
-                                .load(image.getSrc())
-                                .into(folderTarget);
-                        }
+                        //getImages(product)
 
                         ContentValues productValues = new ContentValues();
                         productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
@@ -586,14 +605,8 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
                         }
 
-
-
                     }
 
-                    ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
-                    productsValuesArray = productsValues.toArray(productsValuesArray);
-                    int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
-                    Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
                 }
 
                 if (pageProduct == 0 || (sizePageProduct * pageProduct) < sizeProducts) {
@@ -613,6 +626,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     finalizeSyncProducts();
                 }
             }
+
         });
 
     }
@@ -621,6 +635,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(0);
+
+        ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+        productsValuesArray = productsValues.toArray(productsValuesArray);
+        int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+        Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
 
         /*
         String query = WoodminContract.ProductEntry.COLUMN_ENABLE + " = ?" ;
@@ -679,7 +698,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         Log.v(LOG_TAG, "Orders " + ordersRowsDisabled + " disabled");
                         Log.v(LOG_TAG, "Orders " + sizeOrders + " to sync");
                         */
-
+                        ordersValues = new ArrayList<>();
                         synchronizeBatchOrders(date);
                     }
                 }
@@ -736,7 +755,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(1, notification);
 
-                    ArrayList<ContentValues> ordersValues = new ArrayList<>();
                     for(Order order:response.body().getOrders()) {
 
                         ContentValues orderValues = new ContentValues();
@@ -831,11 +849,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         ordersValues.add(orderValues);
 
                     }
-
-                    ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
-                    ordersValuesArray = ordersValues.toArray(ordersValuesArray);
-                    int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
-                    Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
                 }
                 if (pageOrder == 0 || (sizePageOrders * pageOrder) < sizeOrders) {
                     pageOrder ++;
@@ -864,6 +877,11 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         notificationManager.cancel(1);
 
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
+
+        ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
+        ordersValuesArray = ordersValues.toArray(ordersValuesArray);
+        int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
+        Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
 
         /*
         String query = WoodminContract.OrdersEntry.COLUMN_ENABLE + " = ?" ;

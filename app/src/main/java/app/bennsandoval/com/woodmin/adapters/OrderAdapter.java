@@ -28,6 +28,8 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
     private Context mContext;
     private int mLayoutResourceId;
     private View.OnClickListener mOnClickListener;
+    private SimpleDateFormat mFormat = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.getDefault());
+    private Gson mGson = new GsonBuilder().create();
 
     public OrderAdapter(Context context, int layoutResourceId, Cursor cursor, View.OnClickListener onClickListener){
         super(context,cursor);
@@ -70,11 +72,10 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
     public void onBindViewHolder(ViewHolder holder, Cursor cursor) {
         String json = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.OrdersEntry.COLUMN_JSON));
         String timestampCreatedAt = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.OrdersEntry.COLUMN_CREATED_AT));
-        Log.d(LOG_TAG, "Timestamp " + timestampCreatedAt);
+        //Log.d(LOG_TAG, "Timestamp " + timestampCreatedAt);
 
         if(json!=null) {
-            Gson gson = new GsonBuilder().create();
-            Order order = gson.fromJson(json, Order.class);
+            Order order = mGson.fromJson(json, Order.class);
 
             if(order.getStatus().toUpperCase().equals("COMPLETED")){
                 holder.lyHeader.setBackgroundColor(mContext.getResources().getColor(R.color.colorPrimary));
@@ -102,9 +103,7 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
                 itemsCount += item.getQuantity();
             }
             holder.txtItems.setText(mContext.getString(R.string.items, itemsCount));
-
-            SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.getDefault());
-            holder.txtDate.setText(format.format(order.getCreatedAt()));
+            holder.txtDate.setText(mFormat.format(order.getCreatedAt()));
         }
     }
 

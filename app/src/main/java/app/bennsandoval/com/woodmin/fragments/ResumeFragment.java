@@ -1,6 +1,6 @@
 package app.bennsandoval.com.woodmin.fragments;
 
-import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
@@ -40,7 +41,6 @@ import app.bennsandoval.com.woodmin.models.Resume;
 import app.bennsandoval.com.woodmin.models.orders.Order;
 import app.bennsandoval.com.woodmin.models.products.Product;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
-import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class ResumeFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -48,7 +48,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
 
     private static final String ARG_SECTION_NUMBER = "section_number";
     private Gson mGson = new GsonBuilder().create();
-    private ArrayList<Resume> mResume = new ArrayList();
+    private ArrayList<Resume> mResume = new ArrayList<>();
     private ResumeAdapter mAdapter;
 
     private SwipeRefreshLayout mSwipeLayout;
@@ -127,9 +127,9 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        ((MainActivity) activity).onSectionAttached(
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        ((MainActivity) context).onSectionAttached(
                 getArguments().getInt(ARG_SECTION_NUMBER));
     }
 
@@ -209,7 +209,7 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                     String lastDateAnalyzed = null;
                     int items = 0;
                     float total = 0;
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
                     do {
                         String json = cursor.getString(COLUMN_ORDER_COLUMN_COLUMN_JSON);
                         if(json!=null){

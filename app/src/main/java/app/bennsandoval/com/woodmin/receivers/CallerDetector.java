@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.telephony.TelephonyManager;
 
-import app.bennsandoval.com.woodmin.activities.MainActivity;
-import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.services.HeadInfoService;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 

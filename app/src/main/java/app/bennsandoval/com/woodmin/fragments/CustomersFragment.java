@@ -1,6 +1,5 @@
 package app.bennsandoval.com.woodmin.fragments;
 
-import android.app.Activity;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.Context;
@@ -39,7 +38,6 @@ import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.CustomerActions;
 import app.bennsandoval.com.woodmin.models.customers.Customer;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
-import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class CustomersFragment extends Fragment implements
         LoaderManager.LoaderCallbacks<Cursor>,
@@ -62,7 +60,6 @@ public class CustomersFragment extends Fragment implements
             WoodminContract.CustomerEntry.COLUMN_JSON,
     };
 
-    private SearchView mSearchView;
     private String mQuery;
 
     public static CustomersFragment newInstance(int sectionNumber) {
@@ -90,10 +87,10 @@ public class CustomersFragment extends Fragment implements
         View.OnClickListener onClickListener = new View.OnClickListener(){
             @Override
             public void onClick(final View view) {
-                int position = mRecyclerView.getChildPosition(view);
+                int position = mRecyclerView.getChildAdapterPosition(view);
                 mAdapter.getCursor().moveToPosition(position);
-                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.CustomerEntry.COLUMN_ID));
 /*
+                int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.CustomerEntry.COLUMN_ID));
                 Intent orderIntent = new Intent(getActivity(), ProductDetail.class);
                 orderIntent.putExtra("product", idSelected);
                 startActivity(orderIntent);
@@ -124,7 +121,7 @@ public class CustomersFragment extends Fragment implements
                 R.color.holo_orange_light,
                 R.color.holo_red_light);
 
-        mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
             @Override
             public void onScrollStateChanged(RecyclerView view, int scrollState) {
@@ -134,8 +131,7 @@ public class CustomersFragment extends Fragment implements
             public void onScrolled(RecyclerView view, int dx, int dy) {
                 boolean enable = false;
                 if (view != null && view.getChildCount() > 0) {
-                    boolean topOfFirstItemVisible = view.getChildAt(0).getTop() == 0;
-                    enable = topOfFirstItemVisible;
+                    enable = view.getChildAt(0).getTop() == 0;
                 }
                 mSwipeLayout.setEnabled(enable);
             }
@@ -164,9 +160,9 @@ public class CustomersFragment extends Fragment implements
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        ((MainActivity) activity).onSectionAttached(
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        ((MainActivity) context).onSectionAttached(
                 getArguments().getInt(ARG_SECTION_NUMBER));
     }
 
@@ -177,10 +173,10 @@ public class CustomersFragment extends Fragment implements
         inflater.inflate(R.menu.customer_fragment_menu, menu);
 
         MenuItem searchItem = menu.findItem(R.id.action_search);
-        mSearchView = (SearchView) MenuItemCompat.getActionView(searchItem);
+        SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
 
         SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        if (mSearchView != null) {
+        if (searchView != null) {
             List<SearchableInfo> searchables = searchManager.getSearchablesInGlobalSearch();
             SearchableInfo info = searchManager.getSearchableInfo(getActivity().getComponentName());
             for (SearchableInfo inf : searchables) {
@@ -188,17 +184,17 @@ public class CustomersFragment extends Fragment implements
                     info = inf;
                 }
             }
-            mSearchView.setSearchableInfo(info);
-            mSearchView.setOnQueryTextListener(this);
-            mSearchView.setQueryHint(getActivity().getString(R.string.customer_title_search));
+            searchView.setSearchableInfo(info);
+            searchView.setOnQueryTextListener(this);
+            searchView.setQueryHint(getActivity().getString(R.string.customer_title_search));
 
             if(mQuery != null && mQuery.length() > 0) {
-                mSearchView.setQuery(mQuery, true);
-                mSearchView.setIconifiedByDefault(false);
-                mSearchView.performClick();
-                mSearchView.requestFocus();
+                searchView.setQuery(mQuery, true);
+                searchView.setIconifiedByDefault(false);
+                searchView.performClick();
+                searchView.requestFocus();
             } else {
-                mSearchView.setIconifiedByDefault(true);
+                searchView.setIconifiedByDefault(true);
             }
         }
 

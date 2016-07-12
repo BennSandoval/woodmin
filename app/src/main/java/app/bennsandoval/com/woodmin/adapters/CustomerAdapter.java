@@ -23,6 +23,7 @@ public class CustomerAdapter extends CursorRecyclerViewAdapter<CustomerAdapter.V
     private int mLayoutResourceId;
     private View.OnClickListener mOnClickListener;
     private CustomerActions mActionsListener;
+    private Gson mGson = new GsonBuilder().create();
 
     public CustomerAdapter(Context context, int layoutResourceId, Cursor cursor, View.OnClickListener onClickListener, CustomerActions actionsListener){
         super(context,cursor);
@@ -67,8 +68,7 @@ public class CustomerAdapter extends CursorRecyclerViewAdapter<CustomerAdapter.V
     public void onBindViewHolder(ViewHolder holder, Cursor cursor) {
         String json = cursor.getString(cursor.getColumnIndexOrThrow(WoodminContract.CustomerEntry.COLUMN_JSON));
         if(json!=null) {
-            Gson gson = new GsonBuilder().create();
-            final Customer customer = gson.fromJson(json, Customer.class);
+            final Customer customer = mGson.fromJson(json, Customer.class);
 
             if(customer.getBillingAddress() != null){
                 StringBuilder builder = new StringBuilder();

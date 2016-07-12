@@ -1,6 +1,5 @@
 package app.bennsandoval.com.woodmin.fragments;
 
-import android.app.Activity;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.Context;
@@ -40,7 +39,6 @@ import app.bennsandoval.com.woodmin.activities.OrderDetail;
 import app.bennsandoval.com.woodmin.adapters.OrderAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
-import app.bennsandoval.com.woodmin.utilities.Utility;
 
 public class OrdersFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
@@ -60,7 +58,6 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
             WoodminContract.OrdersEntry.COLUMN_CREATED_AT
     };
 
-    private SearchView mSearchView;
     private String mQuery;
 
     public static OrdersFragment newInstance(int sectionNumber) {
@@ -88,7 +85,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
         View.OnClickListener onClickListener = new View.OnClickListener(){
             @Override
             public void onClick(final View view) {
-                int position = mRecyclerView.getChildPosition(view);
+                int position = mRecyclerView.getChildAdapterPosition(view);
                 mAdapter.getCursor().moveToPosition(position);
                 int idSelected = mAdapter.getCursor().getInt(mAdapter.getCursor().getColumnIndex(WoodminContract.OrdersEntry.COLUMN_ID));
 
@@ -122,7 +119,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                 R.color.holo_orange_light,
                 R.color.holo_red_light);
 
-        mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
             @Override
             public void onScrollStateChanged(RecyclerView view, int scrollState) {
@@ -132,8 +129,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
             public void onScrolled(RecyclerView view, int dx, int dy) {
                 boolean enable = false;
                 if (view != null && view.getChildCount() > 0) {
-                    boolean topOfFirstItemVisible = view.getChildAt(0).getTop() == 0;
-                    enable = topOfFirstItemVisible;
+                    enable = view.getChildAt(0).getTop() == 0;
                 }
                 mSwipeLayout.setEnabled(enable);
             }
@@ -156,9 +152,9 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        ((MainActivity) activity).onSectionAttached(
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        ((MainActivity) context).onSectionAttached(
                 getArguments().getInt(ARG_SECTION_NUMBER));
     }
 
@@ -169,10 +165,10 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
         inflater.inflate(R.menu.order_fragment_menu, menu);
 
         MenuItem searchItem = menu.findItem(R.id.action_search);
-        mSearchView = (SearchView) MenuItemCompat.getActionView(searchItem);
+        SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
 
         SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        if (mSearchView != null) {
+        if (searchView != null) {
             List<SearchableInfo> searchables = searchManager.getSearchablesInGlobalSearch();
             SearchableInfo info = searchManager.getSearchableInfo(getActivity().getComponentName());
             for (SearchableInfo inf : searchables) {
@@ -180,17 +176,17 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                     info = inf;
                 }
             }
-            mSearchView.setSearchableInfo(info);
-            mSearchView.setOnQueryTextListener(this);
-            mSearchView.setQueryHint(getActivity().getString(R.string.order_title_search));
+            searchView.setSearchableInfo(info);
+            searchView.setOnQueryTextListener(this);
+            searchView.setQueryHint(getActivity().getString(R.string.order_title_search));
 
             if(mQuery != null && mQuery.length() > 0) {
-                mSearchView.setQuery(mQuery, true);
-                mSearchView.setIconifiedByDefault(false);
-                mSearchView.performClick();
-                mSearchView.requestFocus();
+                searchView.setQuery(mQuery, true);
+                searchView.setIconifiedByDefault(false);
+                searchView.performClick();
+                searchView.requestFocus();
             } else {
-                mSearchView.setIconifiedByDefault(true);
+                searchView.setIconifiedByDefault(true);
             }
         }
 
@@ -328,7 +324,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
         String action = intent.getAction();
         if (action != null && (action.equals(Intent.ACTION_SEARCH) || action.equals(SearchIntents.ACTION_SEARCH))) {
             mQuery = intent.getStringExtra(SearchManager.QUERY);
-            mQuery = mQuery.replace(getString(R.string.order_voice_search)+" ","");
+            mQuery = mQuery.replace(getString(R.string.order_voice_search) + " ","");
         }
     }
 

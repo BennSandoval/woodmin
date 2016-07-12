@@ -1,6 +1,6 @@
 package app.bennsandoval.com.woodmin.fragments;
 
-import android.app.Activity;
+import android.content.Context;
 import android.database.Cursor;
 
 import android.net.Uri;
@@ -245,7 +245,7 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
             }
         });
 
-        mDrawerLayout.setDrawerListener(mDrawerToggle);
+        mDrawerLayout.addDrawerListener(mDrawerToggle);
     }
 
     private void selectItem(int position) {
@@ -262,10 +262,10 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
+    public void onAttach(Context context) {
+        super.onAttach(context);
         try {
-            mCallbacks = (NavigationDrawerCallbacks) activity;
+            mCallbacks = (NavigationDrawerCallbacks) context;
         } catch (ClassCastException e) {
             throw new ClassCastException("Activity must implement NavigationDrawerCallbacks.");
         }
@@ -300,10 +300,7 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (mDrawerToggle.onOptionsItemSelected(item)) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+        return mDrawerToggle.onOptionsItemSelected(item) || super.onOptionsItemSelected(item);
     }
 
     private void showGlobalContextActionBar() {
@@ -345,7 +342,6 @@ public class NavigationDrawerFragment extends Fragment implements LoaderManager.
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         Log.d(LOG_TAG, "onLoadFinished");
-        int count = 0;
         switch (cursorLoader.getId()) {
             case SHOP_LOADER: {
                     if (cursor.moveToFirst()) {
