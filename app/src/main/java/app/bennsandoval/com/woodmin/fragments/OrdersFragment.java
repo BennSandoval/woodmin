@@ -479,7 +479,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
 
                             }
 
-                            if(getContext().getContentResolver() != null) {
+                            if(getContext() != null) {
                                 ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
                                 ordersValuesArray = ordersValues.toArray(ordersValuesArray);
                                 int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);

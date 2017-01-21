@@ -400,7 +400,7 @@ public class CustomersFragment extends Fragment implements
                                 customersValues.add(customerValues);
                             }
 
-                            if(getContext().getContentResolver() != null) {
+                            if(getContext() != null) {
                                 ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
                                 customersValuesArray = customersValues.toArray(customersValuesArray);
                                 int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);

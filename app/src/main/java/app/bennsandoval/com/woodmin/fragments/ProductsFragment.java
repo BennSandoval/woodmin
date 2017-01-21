@@ -379,7 +379,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
 
                             }
 
-                            if(getContext().getContentResolver() != null) {
+                            if(getContext() != null) {
                                 ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
                                 productsValuesArray = productsValues.toArray(productsValuesArray);
                                 int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
