@@ -3,6 +3,7 @@ package app.bennsandoval.com.woodmin.adapters;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,8 @@ import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.models.products.Product;
 
 public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.ViewHolder>  {
+
+    public static final String LOG_TAG = ProductAdapter.class.getSimpleName();
 
     private Context mContext;
     private int mLayoutResourceId;
@@ -74,13 +77,16 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
                 holder.txtStock.setTextColor(mContext.getResources().getColor(R.color.red));
             }
 
-            Picasso.with(mContext)
-                .load(product.getFeaturedSrc())
-                .resize(300, 300)
-                .centerCrop()
-                .placeholder(android.R.color.transparent)
-                .error(R.drawable.ic_action_cancel)
-                .into(holder.imageView);
+            if(product.getFeaturedSrc() != null && product.getFeaturedSrc().length() > 0) {
+                Log.d(LOG_TAG, "Image: " + product.getFeaturedSrc());
+                Picasso.with(mContext)
+                        .load(product.getFeaturedSrc())
+                        .resize(300, 300)
+                        .centerCrop()
+                        .placeholder(android.R.color.transparent)
+                        .error(R.drawable.ic_action_cancel)
+                        .into(holder.imageView);
+            }
 
             holder.txtName.setText(product.getTitle());
             holder.txtPrice.setText(mContext.getString(R.string.price, product.getPrice()));

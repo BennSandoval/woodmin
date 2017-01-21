@@ -53,7 +53,7 @@ import retrofit2.Response;
 
 public class OrderNew extends AppCompatActivity {
 
-    private final String LOG_TAG = OrderDetail.class.getSimpleName();
+    private final String LOG_TAG = OrderNew.class.getSimpleName();
 
     private Gson mGson = new GsonBuilder().create();
     private Order mOrderSelected;
@@ -652,6 +652,8 @@ public class OrderNew extends AppCompatActivity {
                             mProgress.dismiss();
                         }
                     });
+                    FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                    fab.setEnabled(true);
                 }
             }
 
@@ -661,6 +663,8 @@ public class OrderNew extends AppCompatActivity {
                     @Override
                     public void run() {
                         mProgress.dismiss();
+                        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                        fab.setEnabled(true);
                     }
                 });
             }

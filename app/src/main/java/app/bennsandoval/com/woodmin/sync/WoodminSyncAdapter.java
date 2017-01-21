@@ -81,7 +81,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private Woocommerce woocommerceApi;
 
-    private int sizePageOrders = 50;
+    private int sizePageOrders = 100;
     private int sizeOrders = 0;
     private int pageOrder = 0;
 

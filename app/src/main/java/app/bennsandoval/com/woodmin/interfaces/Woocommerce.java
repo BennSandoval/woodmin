@@ -20,8 +20,10 @@ import retrofit2.http.QueryMap;
 
 public interface Woocommerce {
 
+
     @GET("wc-api/v3/")
     Call<Shop> getShop();
+
 
     @GET("wc-api/v3/orders/count")
     Call<Count> countOrders();
@@ -52,4 +54,35 @@ public interface Woocommerce {
     @POST("wc-api/v3/orders")
     Call<OrderResponse> insertOrder(@Body OrderResponse order);
 
+
+    /*
+    @GET("wp-json/wc/v1/orders/count")
+    Call<Count> countOrders();
+
+    @GET("wp-json/wc/v1/wc-api/v3/orders")
+    Call<Orders> getOrders(@QueryMap Map<String, String> options);
+
+    @GET("wp-json/wc/v1/wc-api/v3/orders/{orderId}/notes")
+    Call<Notes> getOrdersNotes(@QueryMap Map<String, String> options,
+                               @Path("orderId") String orderId);
+
+    @GET("wp-json/wc/v1/wc-api/v3/products/count")
+    Call<Count> countProducts();
+
+    @GET("wp-json/wc/v1/wc-api/v3/products")
+    Call<Products> getProducts(@QueryMap Map<String, String> options);
+
+    @GET("wp-json/wc/v1/wc-api/v3/customers/count")
+    Call<Count> countCustomers();
+
+    @GET("wp-json/wc/v1/wc-api/v3/customers")
+    Call<Customers> getCustomers(@QueryMap Map<String, String> options);
+
+    @PUT("wp-json/wc/v1/wc-api/v3/orders/{orderId}")
+    Call<OrderResponse> updateOrder(@Path("orderId") String orderId,
+                                    @Body OrderUpdate order);
+
+    @POST("wp-json/wc/v1/wc-api/v3/orders")
+    Call<OrderResponse> insertOrder(@Body OrderResponse order);
+    */
 }
