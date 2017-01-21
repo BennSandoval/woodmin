@@ -68,6 +68,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     private String mQuery;
     private int mPage = 0;
     private int mSize = 50;
+    private boolean mLoading = true;
 
     public static ProductsFragment newInstance(int sectionNumber) {
         ProductsFragment fragment = new ProductsFragment();
@@ -250,7 +251,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         switch (cursorLoader.getId()) {
             case PRODUCT_LOADER:
-                if(mSwipeLayout != null){
+                if(mSwipeLayout != null && mLoading){
                     mSwipeLayout.setRefreshing(false);
                 }
                 mAdapter.changeCursor(cursor);
@@ -301,12 +302,15 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
 
 
     private void getPageProducts() {
-        mSwipeLayout.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mSwipeLayout.setRefreshing(true);
-            }
-        }, 2000);
+        mLoading = true;
+        if(mSwipeLayout != null) {
+            mSwipeLayout.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mSwipeLayout.setRefreshing(mLoading);
+                }
+            }, 2000);
+        }
 
         Log.v(LOG_TAG,"Products Read Total:" + mAdapter.getItemCount() + " Page : " + mPage);
 
@@ -383,7 +387,10 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                             getPageProducts();
                         }
                     } else {
-                        mSwipeLayout.setRefreshing(false);
+                        mLoading = false;
+                        if(mSwipeLayout != null){
+                            mSwipeLayout.setRefreshing(mLoading);
+                        }
                     }
                 }
                 mPage++;
@@ -391,8 +398,11 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
 
             @Override
             public void onFailure(Call<Products> call, Throwable t) {
+                mLoading = false;
                 Log.v(LOG_TAG, "onFailure " + mPage + " error " + t.getMessage());
-                mSwipeLayout.setRefreshing(false);
+                if(mSwipeLayout != null){
+                    mSwipeLayout.setRefreshing(mLoading);
+                }
             }
         });
 
