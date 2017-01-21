@@ -2,6 +2,7 @@ package app.bennsandoval.com.woodmin.fragments;
 
 import android.app.SearchManager;
 import android.app.SearchableInfo;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -26,15 +27,26 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.gms.actions.SearchIntents;
+import com.google.gson.Gson;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
 import app.bennsandoval.com.woodmin.activities.OrderAddProduct;
 import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.ProductAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
+import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.products.Products;
+import app.bennsandoval.com.woodmin.models.products.Variation;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ProductsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SearchView.OnQueryTextListener {
 
@@ -54,6 +66,8 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     };
 
     private String mQuery;
+    private int mPage = 0;
+    private int mSize = 50;
 
     public static ProductsFragment newInstance(int sectionNumber) {
         ProductsFragment fragment = new ProductsFragment();
@@ -105,7 +119,9 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
         mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                WoodminSyncAdapter.syncImmediately(getActivity());
+                mPage = 0;
+                getPageProducts();
+                //WoodminSyncAdapter.syncImmediately(getActivity());
             }
         });
 
@@ -142,7 +158,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                 }
             });
         }
-
+        getPageProducts();
         return rootView;
     }
 
@@ -281,6 +297,105 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     private void doSearch() {
         getActivity().getSupportLoaderManager().restartLoader(PRODUCT_LOADER, null, this);
         getActivity().getSupportLoaderManager().getLoader(PRODUCT_LOADER).forceLoad();
+    }
+
+
+    private void getPageProducts() {
+        mSwipeLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeLayout.setRefreshing(true);
+            }
+        }, 2000);
+
+        Log.v(LOG_TAG,"Products Read Total:" + mAdapter.getItemCount() + " Page : " + mPage);
+
+        HashMap<String, String> options = new HashMap<>();
+        options.put("filter[limit]", String.valueOf(mSize));
+        /*
+        if(date != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            options.put("filter[updated_at_min]", dateFormat.format(date));
+        }
+        */
+        options.put("page", String.valueOf(mPage));
+        options.put("filter[post_status]", "any");
+
+        Call<Products> call = ((Woodmin)getActivity().getApplication()).getWoocommerceApiHandler().getProducts(options);
+        call.enqueue(new Callback<Products>() {
+            @Override
+            public void onResponse(Call<Products> call, Response<Products> response) {
+
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    final List<Product> products = response.body().getProducts();
+                    Log.v(LOG_TAG,"Success Product page " + mPage + " products " + products.size());
+                    new Thread(new Runnable() {
+                        public void run() {
+                            Gson gson = new Gson();
+                            ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
+                            for (Product product : products) {
+
+                                //getImages(product)
+
+                                ContentValues productValues = new ContentValues();
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
+                                productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+
+                                productsValues.add(productValues);
+
+                                for(Variation variation:product.getVariations()) {
+
+                                    //TODO, CHANGE THIS APPROACH
+                                    product.setSku(variation.getSku());
+                                    product.setPrice(variation.getPrice());
+                                    product.setStockQuantity(variation.getStockQuantity());
+
+                                    ContentValues variationValues = new ContentValues();
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_ID, variation.getId());
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_JSON, gson.toJson(product));
+                                    variationValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+
+                                    productsValues.add(variationValues);
+
+                                }
+
+                            }
+
+                            ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+                            productsValuesArray = productsValues.toArray(productsValuesArray);
+                            int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+                            Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
+                            getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
+                        }
+                    }).start();
+                    if(products.size() == mSize) {
+                        if(getActivity() != null) {
+                            getPageProducts();
+                        }
+                    } else {
+                        mSwipeLayout.setRefreshing(false);
+                    }
+                }
+                mPage++;
+            }
+
+            @Override
+            public void onFailure(Call<Products> call, Throwable t) {
+                Log.v(LOG_TAG, "onFailure " + mPage + " error " + t.getMessage());
+                mSwipeLayout.setRefreshing(false);
+            }
+        });
+
     }
 
 }

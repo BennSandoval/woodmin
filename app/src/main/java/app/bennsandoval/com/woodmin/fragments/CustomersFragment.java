@@ -2,6 +2,7 @@ package app.bennsandoval.com.woodmin.fragments;
 
 import android.app.SearchManager;
 import android.app.SearchableInfo;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -27,17 +28,25 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.gms.actions.SearchIntents;
+import com.google.gson.Gson;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.activities.MainActivity;
 import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.CustomerAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.CustomerActions;
 import app.bennsandoval.com.woodmin.models.customers.Customer;
+import app.bennsandoval.com.woodmin.models.customers.Customers;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class CustomersFragment extends Fragment implements
         LoaderManager.LoaderCallbacks<Cursor>,
@@ -61,6 +70,8 @@ public class CustomersFragment extends Fragment implements
     };
 
     private String mQuery;
+    private int mPage = 0;
+    private int mSize = 50;
 
     public static CustomersFragment newInstance(int sectionNumber) {
         CustomersFragment fragment = new CustomersFragment();
@@ -112,7 +123,8 @@ public class CustomersFragment extends Fragment implements
         mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                WoodminSyncAdapter.syncImmediately(getActivity());
+                mPage = 0;
+                getPageCustomers();
             }
         });
 
@@ -149,7 +161,7 @@ public class CustomersFragment extends Fragment implements
                 }
             });
         }
-
+        getPageCustomers();
         return rootView;
     }
 
@@ -329,5 +341,85 @@ public class CustomersFragment extends Fragment implements
             callIntent.setData(Uri.parse("tel:" + customer.getBillingAddress().getPhone()));
             startActivity(callIntent);
         }
+    }
+
+    private void getPageCustomers() {
+        mSwipeLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeLayout.setRefreshing(true);
+            }
+        }, 2000);
+
+        Log.v(LOG_TAG,"Orders Read Total:" + mAdapter.getItemCount() + " Page : " + mPage);
+
+        HashMap<String, String> options = new HashMap<>();
+        options.put("filter[limit]", String.valueOf(mSize));
+        options.put("page", String.valueOf(mPage));
+
+        Call<Customers> call = ((Woodmin)getActivity().getApplication()).getWoocommerceApiHandler().getCustomers(options);
+        call.enqueue(new Callback<Customers>() {
+            @Override
+            public void onResponse(Call<Customers> call, Response<Customers> response) {
+                mSwipeLayout.setRefreshing(false);
+                int statusCode = response.code();
+                if (statusCode == 200) {
+                    final List<Customer> customers = response.body().getCustomers();
+                    Log.v(LOG_TAG,"Success Customers page " + mPage + " customers " + customers.size());
+                    new Thread(new Runnable() {
+                        public void run() {
+                            Gson gson = new Gson();
+                            ArrayList<ContentValues> customersValues = new ArrayList<>();
+                            for (Customer customer : customers) {
+
+                                ContentValues customerValues = new ContentValues();
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_ID, customer.getId());
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_EMAIL, customer.getEmail());
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_FIRST_NAME, customer.getFirstName());
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_NAME, customer.getLastName());
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_USERNAME, customer.getUsername());
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_LAST_ORDER_ID, customer.getLastOrderId());
+
+                                if (customer.getBillingAddress() != null) {
+                                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_FIRST_NAME, customer.getBillingAddress().getFirstName());
+                                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_LAST_NAME, customer.getBillingAddress().getLastName());
+                                    if (customer.getBillingAddress().getPhone() != null) {
+                                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_BILLING_PHONE, customer.getBillingAddress().getPhone());
+                                    }
+                                }
+                                if (customer.getShippingAddress() != null) {
+                                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_FIRST_NAME, customer.getShippingAddress().getFirstName());
+                                    customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_LAST_NAME, customer.getShippingAddress().getLastName());
+                                    if (customer.getShippingAddress().getPhone() != null) {
+                                        customerValues.put(WoodminContract.CustomerEntry.COLUMN_SHIPPING_PHONE, customer.getShippingAddress().getPhone());
+                                    }
+                                }
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_JSON, gson.toJson(customer));
+                                customerValues.put(WoodminContract.CustomerEntry.COLUMN_ENABLE, 1);
+
+                                customersValues.add(customerValues);
+                            }
+
+                            ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
+                            customersValuesArray = customersValues.toArray(customersValuesArray);
+                            int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
+                            Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
+                            getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
+                        }
+                    }).start();
+                    if(customers.size() == mSize) {
+                        //getPageCustomers();
+                    }
+                }
+                mPage++;
+            }
+
+            @Override
+            public void onFailure(Call<Customers> call, Throwable t) {
+                Log.v(LOG_TAG, "onFailure " + mPage + " error " + t.getMessage());
+                mSwipeLayout.setRefreshing(false);
+            }
+        });
+
     }
 }

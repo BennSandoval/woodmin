@@ -88,7 +88,7 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
                 holder.txtStatus.setTextColor(mContext.getResources().getColor(R.color.orange));
             }
             holder.txtOrder.setText(mContext.getString(R.string.order, order.getOrderNumber()));
-            holder.txtPrice.setText("$" + order.getTotal());
+            holder.txtPrice.setText(mContext.getString(R.string.price, order.getTotal()));
             holder.txtStatus.setText(order.getStatus().toUpperCase());
 
             if(order.getCustomer() != null && order.getCustomer().getFirstName() != null && order.getCustomer().getFirstName().length() > 0){

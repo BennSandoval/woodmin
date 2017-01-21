@@ -81,7 +81,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private Woocommerce woocommerceApi;
 
-    private int sizePageOrders = 100;
+    private int sizePageOrders = 50;
     private int sizeOrders = 0;
     private int pageOrder = 0;
 
@@ -180,6 +180,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         };
         threadPoolExecutor.submit(runnableShop);
+
         //Products
         Runnable runnableProducts = new Runnable() {
             public void run() {
@@ -187,6 +188,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         };
         threadPoolExecutor.submit(runnableProducts);
+
         //Customers
         Runnable runnableCustomers = new Runnable() {
             public void run() {
@@ -194,12 +196,15 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         };
         threadPoolExecutor.submit(runnableCustomers);
+
+        //Orders
         Runnable runnableOrders = new Runnable() {
             public void run() {
                 synchronizeOrders(finalLastSync);
             }
         };
         threadPoolExecutor.submit(runnableOrders);
+
         /*
         //Shop
         Handler handler = new Handler(Looper.getMainLooper());
@@ -289,18 +294,17 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeCustomers(final Date date) {
         Log.v(LOG_TAG, "Customers sync start");
 
+        /*
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
         Notification notification = new NotificationCompat.Builder(getContext())
             .setProgress(100, 0, false)
             .setContentTitle(getContext().getString(R.string.sync_customers))
             .setContentText(getContext().getString(R.string.sync_count, 0, 0))
-            /*
-            .setStyle(new NotificationCompat.BigTextStyle()
-                    .bigText(getContext().getString(R.string.sync_customers)))
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setVibrate(new long[]{0, 400})
-             */
+            //.setStyle(new NotificationCompat.BigTextStyle()
+            //        .bigText(getContext().getString(R.string.sync_customers)))
+            //.setVisibility(Notification.VISIBILITY_PUBLIC)
+            //.setVibrate(new long[]{0, 400})
             .setSmallIcon(R.drawable.ic_media_play)
             .setLargeIcon(bm)
             .setWhen(System.currentTimeMillis())
@@ -309,6 +313,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             .build();
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(2, notification);
+        */
 
         if(date == null) {
 
@@ -369,19 +374,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (statusCode == 200) {
                     Log.v(LOG_TAG, "Success page Customer " + pageCustomer);
 
+                    /*
                     //Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
                     Notification notification = new NotificationCompat.Builder(getContext())
                         .setProgress(sizeCustomers, (sizePageCustomer * pageCustomer), false)
                         .setContentTitle(getContext().getString(R.string.sync_customers))
                         .setContentText(getContext().getString(R.string.sync_count, (sizePageCustomer * pageCustomer), sizeCustomers))
-                        /*
-                        .setStyle(new NotificationCompat.BigTextStyle()
+                        //.setStyle(new NotificationCompat.BigTextStyle()
                                 .bigText(getContext().getString(R.string.sync_customers)))
-                        .setVisibility(Notification.VISIBILITY_PUBLIC)
-                        .setVibrate(new long[]{0, 400})
-                        .setSound(uri)
-                         */
+                        //.setVisibility(Notification.VISIBILITY_PUBLIC)
+                        //.setVibrate(new long[]{0, 400})
+                        //.setSound(uri)
                         .setSmallIcon(R.drawable.ic_media_play)
                         .setLargeIcon(bm)
                         .setWhen(System.currentTimeMillis())
@@ -389,7 +393,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         .build();
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(2, notification);
-
+                    */
 
                     for (Customer customer : response.body().getCustomers()) {
 
@@ -445,8 +449,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void finalizeSyncCustomers() {
 
+        /*
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(2);
+        */
 
         ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
         customersValuesArray = customersValues.toArray(customersValuesArray);
@@ -469,18 +475,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeProducts(final Date date) {
         Log.v(LOG_TAG, "Products sync start");
 
+        /*
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
         Notification notification = new NotificationCompat.Builder(getContext())
             .setProgress(100, 0, false)
             .setContentTitle(getContext().getString(R.string.sync_products))
             .setContentText(getContext().getString(R.string.sync_count, 0, 0))
-            /*
-            .setStyle(new NotificationCompat.BigTextStyle()
-                    .bigText(getContext().getString(R.string.sync_products)))
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setVibrate(new long[]{0, 400})
-             */
+
+            //.setStyle(new NotificationCompat.BigTextStyle()
+            //        .bigText(getContext().getString(R.string.sync_products)))
+            //.setVisibility(Notification.VISIBILITY_PUBLIC)
+            //.setVibrate(new long[]{0, 400})
             .setSmallIcon(R.drawable.ic_media_play)
             .setLargeIcon(bm)
             .setWhen(System.currentTimeMillis())
@@ -489,7 +495,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             .build();
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(0, notification);
-
+        */
         if(date == null) {
 
             Call<Count> call = woocommerceApi.countProducts();
@@ -548,19 +554,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (statusCode == 200) {
                     Log.v(LOG_TAG, "Success page Product " + pageProduct);
 
+                    /*
                     //Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
                     Notification notification = new NotificationCompat.Builder(getContext())
                         .setProgress(sizeProducts, (sizePageProduct * pageProduct), false)
                         .setContentTitle(getContext().getString(R.string.sync_products))
                         .setContentText(getContext().getString(R.string.sync_count, (sizePageProduct * pageProduct), sizeProducts))
-                        /*
-                        .setStyle(new NotificationCompat.BigTextStyle()
-                                .bigText(getContext().getString(R.string.sync_products)))
-                        .setVisibility(Notification.VISIBILITY_PUBLIC)
-                        .setVibrate(new long[]{0, 400})
-                        .setSound(uri)
-                         */
+                        //.setStyle(new NotificationCompat.BigTextStyle()
+                        //        .bigText(getContext().getString(R.string.sync_products)))
+                        //.setVisibility(Notification.VISIBILITY_PUBLIC)
+                        //.setVibrate(new long[]{0, 400})
+                        //.setSound(uri)
                         .setSmallIcon(R.drawable.ic_media_play)
                         .setLargeIcon(bm)
                         .setWhen(System.currentTimeMillis())
@@ -568,6 +573,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         .build();
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(0, notification);
+                    */
 
                     //ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
                     for (Product product : response.body().getProducts()) {
@@ -633,8 +639,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void finalizeSyncProducts() {
 
+        /*
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(0);
+        */
 
         ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
         productsValuesArray = productsValues.toArray(productsValuesArray);
@@ -657,18 +665,17 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
     private void synchronizeOrders(final Date date) {
         Log.v(LOG_TAG, "Orders sync start");
 
+        /*
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
         Notification notification = new NotificationCompat.Builder(getContext())
             .setProgress(100, 0, false)
             .setContentTitle(getContext().getString(R.string.sync_orders))
             .setContentText(getContext().getString(R.string.sync_count, 0, 0))
-            /*
-            .setStyle(new NotificationCompat.BigTextStyle()
-                    .bigText(getContext().getString(R.string.sync_orders)))
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setVibrate(new long[]{0, 400})
-             */
+            //.setStyle(new NotificationCompat.BigTextStyle()
+            //        .bigText(getContext().getString(R.string.sync_orders)))
+            //.setVisibility(Notification.VISIBILITY_PUBLIC)
+            //.setVibrate(new long[]{0, 400})
             .setSound(uri)
             .setSmallIcon(R.drawable.ic_media_play)
             .setLargeIcon(bm)
@@ -677,6 +684,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
             .build();
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(1, notification);
+        */
 
         if(date == null) {
             Call<Count> call = woocommerceApi.countOrders();
@@ -734,19 +742,18 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (statusCode == 200) {
                     Log.v(LOG_TAG,"Success page Order " + pageOrder);
 
+                    /*
                     //Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     Bitmap bm = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.ic_media_play);
                     Notification notification = new NotificationCompat.Builder(getContext())
                         .setProgress(sizeOrders, (sizePageOrders * pageOrder), false)
                         .setContentTitle(getContext().getString(R.string.sync_orders))
                         .setContentText(getContext().getString(R.string.sync_count, (sizePageOrders * pageOrder), sizeOrders))
-                        /*
-                        .setStyle(new NotificationCompat.BigTextStyle()
-                                .bigText(getContext().getString(R.string.sync_orders)))
-                        .setVisibility(Notification.VISIBILITY_PUBLIC)
-                        .setVibrate(new long[]{0, 400})
-                        .setSound(uri)
-                        */
+                        //.setStyle(new NotificationCompat.BigTextStyle()
+                        //        .bigText(getContext().getString(R.string.sync_orders)))
+                        //.setVisibility(Notification.VISIBILITY_PUBLIC)
+                        //.setVibrate(new long[]{0, 400})
+                        //.setSound(uri)
                         .setSmallIcon(R.drawable.ic_media_play)
                         .setLargeIcon(bm)
                         .setWhen(System.currentTimeMillis())
@@ -754,6 +761,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                         .build();
                     NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
                     notificationManager.notify(1, notification);
+                    */
 
                     for(Order order:response.body().getOrders()) {
 
@@ -873,8 +881,10 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void finalizeSyncOrders() {
 
+        /*
         NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(1);
+        */
 
         Utility.setPreferredLastSync(getContext(), System.currentTimeMillis());
 
