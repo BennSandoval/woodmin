@@ -1,7 +1,9 @@
 package app.bennsandoval.com.woodmin.activities;
 
 import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -111,6 +113,13 @@ public class OrderAddProduct extends AppCompatActivity {
         Button ok = (Button)findViewById(R.id.ok);
 
         ImageView image = (ImageView) findViewById(R.id.item_image_card);
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mProductSelected.getPermalink()));
+                startActivity(browserIntent);
+            }
+        });
 
         mPrice = Float.valueOf(mProductSelected.getPrice());
 

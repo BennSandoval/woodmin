@@ -120,9 +120,13 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
         mSwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                mPage = 0;
-                getPageProducts();
-                //WoodminSyncAdapter.syncImmediately(getActivity());
+                if(!mLoading){
+                    mPage = 0;
+                    getPageProducts();
+                    //WoodminSyncAdapter.syncImmediately(getActivity());
+                } else {
+                    mSwipeLayout.setRefreshing(true);
+                }
             }
         });
 
@@ -251,7 +255,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         switch (cursorLoader.getId()) {
             case PRODUCT_LOADER:
-                if(mSwipeLayout != null && mLoading){
+                if(mSwipeLayout != null && !mLoading){
                     mSwipeLayout.setRefreshing(false);
                 }
                 mAdapter.changeCursor(cursor);
@@ -375,11 +379,13 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
 
                             }
 
-                            ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
-                            productsValuesArray = productsValues.toArray(productsValuesArray);
-                            int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
-                            Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
-                            getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
+                            if(getContext().getContentResolver() != null) {
+                                ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+                                productsValuesArray = productsValues.toArray(productsValuesArray);
+                                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+                                Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
+                                getContext().getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
+                            }
                         }
                     }).start();
                     if(products.size() == mSize) {

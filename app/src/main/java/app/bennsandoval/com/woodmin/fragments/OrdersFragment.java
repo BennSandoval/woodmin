@@ -479,11 +479,13 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
 
                             }
 
-                            ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
-                            ordersValuesArray = ordersValues.toArray(ordersValuesArray);
-                            int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
-                            Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
-                            getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
+                            if(getContext().getContentResolver() != null) {
+                                ContentValues[] ordersValuesArray = new ContentValues[ordersValues.size()];
+                                ordersValuesArray = ordersValues.toArray(ordersValuesArray);
+                                int ordersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.OrdersEntry.CONTENT_URI, ordersValuesArray);
+                                Log.v(LOG_TAG,"Orders " + ordersRowsUpdated + " updated");
+                                getContext().getContentResolver().notifyChange(WoodminContract.OrdersEntry.CONTENT_URI, null, false);
+                            }
                         }
                     }).start();
                     if(orders.size() == mSize) {

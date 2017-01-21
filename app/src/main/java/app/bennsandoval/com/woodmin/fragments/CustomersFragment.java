@@ -400,11 +400,13 @@ public class CustomersFragment extends Fragment implements
                                 customersValues.add(customerValues);
                             }
 
-                            ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
-                            customersValuesArray = customersValues.toArray(customersValuesArray);
-                            int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
-                            Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
-                            getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
+                            if(getContext().getContentResolver() != null) {
+                                ContentValues[] customersValuesArray = new ContentValues[customersValues.size()];
+                                customersValuesArray = customersValues.toArray(customersValuesArray);
+                                int customersRowsUpdated = getContext().getContentResolver().bulkInsert(WoodminContract.CustomerEntry.CONTENT_URI, customersValuesArray);
+                                Log.v(LOG_TAG, "Customers " + customersRowsUpdated + " updated");
+                                getContext().getContentResolver().notifyChange(WoodminContract.CustomerEntry.CONTENT_URI, null, false);
+                            }
                         }
                     }).start();
                     if(customers.size() == mSize) {
