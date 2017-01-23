@@ -304,7 +304,6 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
         getActivity().getSupportLoaderManager().getLoader(PRODUCT_LOADER).forceLoad();
     }
 
-
     private void getPageProducts() {
         mLoading = true;
         if(mSwipeLayout != null) {

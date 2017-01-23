@@ -8,6 +8,8 @@ import app.bennsandoval.com.woodmin.models.orders.Notes;
 import app.bennsandoval.com.woodmin.models.orders.OrderResponse;
 import app.bennsandoval.com.woodmin.models.orders.OrderUpdate;
 import app.bennsandoval.com.woodmin.models.orders.Orders;
+import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.products.ProductResponse;
 import app.bennsandoval.com.woodmin.models.products.Products;
 import app.bennsandoval.com.woodmin.models.shop.Shop;
 import retrofit2.Call;
@@ -35,24 +37,27 @@ public interface Woocommerce {
     Call<Notes> getOrdersNotes(@QueryMap Map<String, String> options,
                                @Path("orderId") String orderId);
 
-    @GET("wc-api/v3/products/count")
-    Call<Count> countProducts();
-
-    @GET("wc-api/v3/products")
-    Call<Products> getProducts(@QueryMap Map<String, String> options);
-
-    @GET("wc-api/v3/customers/count")
-    Call<Count> countCustomers();
-
-    @GET("wc-api/v3/customers")
-    Call<Customers> getCustomers(@QueryMap Map<String, String> options);
-
     @PUT("wc-api/v3/orders/{orderId}")
     Call<OrderResponse> updateOrder(@Path("orderId") String orderId,
                                     @Body OrderUpdate order);
 
     @POST("wc-api/v3/orders")
     Call<OrderResponse> insertOrder(@Body OrderResponse order);
+
+    @GET("wc-api/v3/products/count")
+    Call<Count> countProducts();
+
+    @GET("wc-api/v3/products")
+    Call<Products> getProducts(@QueryMap Map<String, String> options);
+
+    @GET("wc-api/v3/products/{productId}")
+    Call<ProductResponse> getProduct(@Path("productId") int productId);
+
+    @GET("wc-api/v3/customers/count")
+    Call<Count> countCustomers();
+
+    @GET("wc-api/v3/customers")
+    Call<Customers> getCustomers(@QueryMap Map<String, String> options);
 
 
     /*

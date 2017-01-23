@@ -22,13 +22,18 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import app.bennsandoval.com.woodmin.R;
+import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.models.customers.BillingAddress;
 import app.bennsandoval.com.woodmin.models.orders.Item;
 import app.bennsandoval.com.woodmin.models.orders.Order;
 import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.products.ProductResponse;
 import app.bennsandoval.com.woodmin.models.products.Variation;
 import app.bennsandoval.com.woodmin.utilities.Utility;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class OrderAddProduct extends AppCompatActivity {
 
@@ -100,59 +105,18 @@ public class OrderAddProduct extends AppCompatActivity {
             Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrder));
         }
 
-        LinearLayout header = (LinearLayout)findViewById(R.id.header);
-        TextView sku = (TextView)findViewById(R.id.sku);
-        final TextView price = (TextView)findViewById(R.id.price);
-        TextView title = (TextView)findViewById(R.id.title);
-        final EditText quantity = (EditText)findViewById(R.id.quantity);
+        fillView();
 
         Button remove = (Button)findViewById(R.id.less);
         Button add = (Button)findViewById(R.id.more);
-
         Button cancel = (Button)findViewById(R.id.cancel);
         Button ok = (Button)findViewById(R.id.ok);
-
-        ImageView image = (ImageView) findViewById(R.id.item_image_card);
-        image.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mProductSelected.getPermalink()));
-                startActivity(browserIntent);
-            }
-        });
-
-        mPrice = Float.valueOf(mProductSelected.getPrice());
-
-        if(mProductSelected.getStockQuantity() > 0){
-            header.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-        } else {
-            header.setBackgroundColor(getResources().getColor(R.color.red));
-        }
-
-        sku.setText(mProductSelected.getSku());
-        price.setText(getString(R.string.price, String.valueOf(mPrice)));
-        title.setText(mProductSelected.getTitle());
-        quantity.setText(String.valueOf(mQuantity));
-
-        for(Item itemOder :mOrder.getItems()) {
-            if(itemOder.getProductId() == mProductId) {
-                quantity.setText(String.valueOf(itemOder.getQuantity()));
-                mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() + itemOder.getQuantity());
-                break;
-            }
-        }
-
-        Picasso.with(getApplicationContext())
-                .load(mProductSelected.getFeaturedSrc())
-                .resize(300, 300)
-                .centerCrop()
-                .placeholder(android.R.color.transparent)
-                .error(R.drawable.ic_action_cancel)
-                .into(image);
 
         remove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                TextView price = (TextView)findViewById(R.id.price);
+                EditText quantity = (EditText)findViewById(R.id.quantity);
                 try {
                     mQuantity = Integer.valueOf(quantity.getText().toString());
                 } catch (Exception ex){
@@ -171,6 +135,8 @@ public class OrderAddProduct extends AppCompatActivity {
         add.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                TextView price = (TextView)findViewById(R.id.price);
+                EditText quantity = (EditText)findViewById(R.id.quantity);
                 try {
                     mQuantity = Integer.valueOf(quantity.getText().toString());
                 } catch (Exception ex){
@@ -196,6 +162,7 @@ public class OrderAddProduct extends AppCompatActivity {
         ok.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                EditText quantity = (EditText)findViewById(R.id.quantity);
                 try {
                     mQuantity = Integer.valueOf(quantity.getText().toString());
                 } catch (Exception ex){
@@ -243,14 +210,14 @@ public class OrderAddProduct extends AppCompatActivity {
 
             }
         });
-
+        getProduct();
     }
 
     private void updateProduct() {
 
         mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() - mQuantity);
 
-        ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
+        ArrayList<ContentValues> productsValues = new ArrayList<>();
 
         ContentValues productValues = new ContentValues();
         productValues.put(WoodminContract.ProductEntry.COLUMN_ID, mProductSelected.getId());
@@ -290,5 +257,122 @@ public class OrderAddProduct extends AppCompatActivity {
 
         getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
 
+    }
+
+    private void getProduct() {
+        if(mProductSelected != null) {
+            Log.v(LOG_TAG, "Get product " +  mProductSelected.getId());
+
+            Call<ProductResponse> call = ((Woodmin)getApplication()).getWoocommerceApiHandler().getProduct(mProductSelected.getId());
+            call.enqueue(new Callback<ProductResponse>() {
+                @Override
+                public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
+                    int statusCode = response.code();
+                    if (statusCode == 200) {
+                        if(response.body().getProduct() != null) {
+
+                            ArrayList<ContentValues> productsValues = new ArrayList<>();
+
+                            Product product = response.body().getProduct();
+                            Log.v(LOG_TAG, "Get product response " +  mGson.toJson(product));
+
+                            ContentValues productValues = new ContentValues();
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_ID, product.getId());
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_JSON, mGson.toJson(product));
+                            productValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+
+                            productsValues.add(productValues);
+
+                            for(Variation variation:product.getVariations()) {
+
+                                //TODO, CHANGE THIS APPROACH
+                                product.setSku(variation.getSku());
+                                product.setPrice(variation.getPrice());
+                                product.setStockQuantity(variation.getStockQuantity());
+
+                                ContentValues variationValues = new ContentValues();
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_ID, variation.getId());
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_TITLE, product.getTitle());
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_SKU, product.getSku());
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_PRICE, product.getPrice());
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_STOCK, product.getStockQuantity());
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_JSON, mGson.toJson(product));
+                                variationValues.put(WoodminContract.ProductEntry.COLUMN_ENABLE, 1);
+
+                                productsValues.add(variationValues);
+
+                            }
+
+                            ContentValues[] productsValuesArray = new ContentValues[productsValues.size()];
+                            productsValuesArray = productsValues.toArray(productsValuesArray);
+                            int ordersRowsUpdated = getContentResolver().bulkInsert(WoodminContract.ProductEntry.CONTENT_URI, productsValuesArray);
+                            Log.v(LOG_TAG, "Products " + ordersRowsUpdated + " updated");
+
+                            getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
+
+                            mProductSelected = product;
+                            fillView();
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ProductResponse> call, Throwable t) {
+
+                }
+            });
+        }
+    }
+
+    private void fillView() {
+        LinearLayout header = (LinearLayout)findViewById(R.id.header);
+        TextView sku = (TextView)findViewById(R.id.sku);
+        TextView title = (TextView)findViewById(R.id.title);
+        TextView price = (TextView)findViewById(R.id.price);
+        EditText quantity = (EditText)findViewById(R.id.quantity);
+        TextView stock = (TextView) findViewById(R.id.stock);
+
+        ImageView image = (ImageView) findViewById(R.id.item_image_card);
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mProductSelected.getPermalink()));
+                startActivity(browserIntent);
+            }
+        });
+
+        mPrice = Float.valueOf(mProductSelected.getPrice());
+
+        if(mProductSelected.getStockQuantity() > 0){
+            header.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        } else {
+            header.setBackgroundColor(getResources().getColor(R.color.red));
+        }
+
+        sku.setText(mProductSelected.getSku());
+        price.setText(getString(R.string.price, String.valueOf(mPrice)));
+        title.setText(mProductSelected.getTitle());
+        quantity.setText(String.valueOf(mQuantity));
+        stock.setText(getString(R.string.stock, String.valueOf(mProductSelected.getStockQuantity())));
+
+        for(Item itemOder :mOrder.getItems()) {
+            if(itemOder.getProductId() == mProductId) {
+                quantity.setText(String.valueOf(itemOder.getQuantity()));
+                mProductSelected.setStockQuantity(mProductSelected.getStockQuantity() + itemOder.getQuantity());
+                break;
+            }
+        }
+
+        Picasso.with(getApplicationContext())
+                .load(mProductSelected.getFeaturedSrc())
+                .resize(300, 300)
+                .centerCrop()
+                .placeholder(android.R.color.transparent)
+                .error(R.drawable.ic_action_cancel)
+                .into(image);
     }
 }

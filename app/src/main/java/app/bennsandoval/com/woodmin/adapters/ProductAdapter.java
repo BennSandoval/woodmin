@@ -90,7 +90,7 @@ public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.Vie
 
             holder.txtName.setText(product.getTitle());
             holder.txtPrice.setText(mContext.getString(R.string.price, product.getPrice()));
-            holder.txtStock.setText(mContext.getString(R.string.stock, product.getStockQuantity()));
+            holder.txtStock.setText(mContext.getString(R.string.stock, String.valueOf(product.getStockQuantity())));
             holder.txtSku.setText(product.getSku());
 
             String description = product.getShortDescription().replaceAll("\\<.*?>","");
