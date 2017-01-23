@@ -163,7 +163,6 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                 }
             });
         }
-        getPageProducts();
         return rootView;
     }
 

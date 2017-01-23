@@ -98,6 +98,8 @@
     <string name="price_const">Price: $%1$s Cost: $%2$s</string>
     <string name="price">$%1$s</string>
     <string name="stock">%1$s Units</string>
+    <string name="product_updated">Stock availability confirmed</string>
+    <string name="product_updated_wip">Getting product information, please wait</string>
 
     <!--Customer-->
     <string name="customer_voice_search">customer</string>

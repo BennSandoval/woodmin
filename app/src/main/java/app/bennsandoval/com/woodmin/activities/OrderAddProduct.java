@@ -105,8 +105,6 @@ public class OrderAddProduct extends AppCompatActivity {
             Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrder));
         }
 
-        fillView();
-
         Button remove = (Button)findViewById(R.id.less);
         Button add = (Button)findViewById(R.id.more);
         Button cancel = (Button)findViewById(R.id.cancel);
@@ -115,40 +113,14 @@ public class OrderAddProduct extends AppCompatActivity {
         remove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TextView price = (TextView)findViewById(R.id.price);
-                EditText quantity = (EditText)findViewById(R.id.quantity);
-                try {
-                    mQuantity = Integer.valueOf(quantity.getText().toString());
-                } catch (Exception ex){
-                    Log.e(LOG_TAG, "Error getting quantity");
-                }
-                if (mQuantity > 0) {
-                    mQuantity--;
-                    quantity.setText(String.valueOf(mQuantity));
-                    price.setText(getString(R.string.price, String.valueOf(mQuantity * mPrice)));
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.error_add_quantity), Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(getApplicationContext(), getString(R.string.product_updated_wip), Toast.LENGTH_LONG).show();
             }
         });
 
         add.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TextView price = (TextView)findViewById(R.id.price);
-                EditText quantity = (EditText)findViewById(R.id.quantity);
-                try {
-                    mQuantity = Integer.valueOf(quantity.getText().toString());
-                } catch (Exception ex){
-                    Log.e(LOG_TAG, "Error getting quantity");
-                }
-                if (mQuantity < mProductSelected.getStockQuantity()) {
-                    mQuantity++;
-                    quantity.setText(String.valueOf(mQuantity));
-                    price.setText(getString(R.string.price, String.valueOf(mQuantity * mPrice)));
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.error_add_stock_quantity), Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(getApplicationContext(), getString(R.string.product_updated_wip), Toast.LENGTH_LONG).show();
             }
         });
 
@@ -162,54 +134,11 @@ public class OrderAddProduct extends AppCompatActivity {
         ok.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EditText quantity = (EditText)findViewById(R.id.quantity);
-                try {
-                    mQuantity = Integer.valueOf(quantity.getText().toString());
-                } catch (Exception ex){
-                    Log.e(LOG_TAG, "Error getting quantity");
-                }
-                if (mQuantity <= mProductSelected.getStockQuantity()) {
-
-                    if(mQuantity >= 0) {
-
-                        Item item = new Item();
-                        for(Item itemOder :mOrder.getItems()) {
-                            if(itemOder.getProductId() == mProductId) {
-                                if(mQuantity == 0) {
-                                    item.setProductId(itemOder.getId());
-                                    mOrder.getItems().remove(itemOder);
-                                } else {
-                                    itemOder.setQuantity(mQuantity);
-                                    itemOder.setTotal(String.valueOf(mQuantity * mPrice));
-                                    item = itemOder;
-                                }
-                                break;
-                            }
-                        }
-                        if(item.getProductId() < 0 && mQuantity > 0) {
-                            item.setName(mProductSelected.getTitle());
-                            item.setSku(mProductSelected.getSku());
-                            item.setPrice(mProductSelected.getPrice());
-                            item.setTotal(String.valueOf(mQuantity * mPrice));
-
-                            item.setProductId(mProductId);
-                            item.setQuantity(mQuantity);
-                            mOrder.getItems().add(item);
-                        }
-
-                        updateProduct();
-
-                        Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrder));
-                        finish();
-                    } else {
-                        Toast.makeText(getApplicationContext(), getString(R.string.error_add_quantity), Toast.LENGTH_LONG).show();
-                    }
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.error_add_stock_quantity), Toast.LENGTH_LONG).show();
-                }
-
+                Toast.makeText(getApplicationContext(), getString(R.string.product_updated_wip), Toast.LENGTH_LONG).show();
             }
         });
+
+        fillView(false);
         getProduct();
     }
 
@@ -314,21 +243,23 @@ public class OrderAddProduct extends AppCompatActivity {
 
                             getContentResolver().notifyChange(WoodminContract.ProductEntry.CONTENT_URI, null, false);
 
+                            Toast.makeText(getApplicationContext(), getString(R.string.product_updated), Toast.LENGTH_LONG).show();
                             mProductSelected = product;
-                            fillView();
+                            fillView(true);
                         }
                     }
                 }
 
                 @Override
                 public void onFailure(Call<ProductResponse> call, Throwable t) {
-
+                    Log.v(LOG_TAG, "Get product " +  mProductSelected.getId() + " onFailure " + " error " + t.getMessage());
+                    fillView(false);
                 }
             });
         }
     }
 
-    private void fillView() {
+    private void fillView(boolean active) {
         LinearLayout header = (LinearLayout)findViewById(R.id.header);
         TextView sku = (TextView)findViewById(R.id.sku);
         TextView title = (TextView)findViewById(R.id.title);
@@ -357,7 +288,7 @@ public class OrderAddProduct extends AppCompatActivity {
         price.setText(getString(R.string.price, String.valueOf(mPrice)));
         title.setText(mProductSelected.getTitle());
         quantity.setText(String.valueOf(mQuantity));
-        stock.setText(getString(R.string.stock, String.valueOf(mProductSelected.getStockQuantity())));
+        stock.setText(getString(R.string.stock, String.valueOf(mProductSelected.getStockQuantity() - mQuantity)));
 
         for(Item itemOder :mOrder.getItems()) {
             if(itemOder.getProductId() == mProductId) {
@@ -374,5 +305,116 @@ public class OrderAddProduct extends AppCompatActivity {
                 .placeholder(android.R.color.transparent)
                 .error(R.drawable.ic_action_cancel)
                 .into(image);
+
+        if(active) {
+            Button remove = (Button)findViewById(R.id.less);
+            Button add = (Button)findViewById(R.id.more);
+            Button cancel = (Button)findViewById(R.id.cancel);
+            Button ok = (Button)findViewById(R.id.ok);
+
+            remove.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TextView price = (TextView)findViewById(R.id.price);
+                    EditText quantity = (EditText)findViewById(R.id.quantity);
+                    TextView stock = (TextView)findViewById(R.id.stock);
+                    try {
+                        mQuantity = Integer.valueOf(quantity.getText().toString());
+                    } catch (Exception ex){
+                        Log.e(LOG_TAG, "Error getting quantity");
+                    }
+                    if (mQuantity > 0) {
+                        mQuantity--;
+                        quantity.setText(String.valueOf(mQuantity));
+                        price.setText(getString(R.string.price, String.valueOf(mQuantity * mPrice)));
+                        stock.setText(getString(R.string.stock, String.valueOf(mProductSelected.getStockQuantity() - mQuantity)));
+                    } else {
+                        Toast.makeText(getApplicationContext(), getString(R.string.error_add_quantity), Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+
+            add.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TextView price = (TextView)findViewById(R.id.price);
+                    TextView stock = (TextView)findViewById(R.id.stock);
+                    EditText quantity = (EditText)findViewById(R.id.quantity);
+                    try {
+                        mQuantity = Integer.valueOf(quantity.getText().toString());
+                    } catch (Exception ex){
+                        Log.e(LOG_TAG, "Error getting quantity");
+                    }
+                    if (mQuantity < mProductSelected.getStockQuantity()) {
+                        mQuantity++;
+                        quantity.setText(String.valueOf(mQuantity));
+                        price.setText(getString(R.string.price, String.valueOf(mQuantity * mPrice)));
+                        stock.setText(getString(R.string.stock, String.valueOf(mProductSelected.getStockQuantity() - mQuantity)));
+                    } else {
+                        Toast.makeText(getApplicationContext(), getString(R.string.error_add_stock_quantity), Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+
+            cancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+
+            ok.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    EditText quantity = (EditText)findViewById(R.id.quantity);
+                    try {
+                        mQuantity = Integer.valueOf(quantity.getText().toString());
+                    } catch (Exception ex){
+                        Log.e(LOG_TAG, "Error getting quantity");
+                    }
+                    if (mQuantity <= mProductSelected.getStockQuantity()) {
+
+                        if(mQuantity >= 0) {
+
+                            Item item = new Item();
+                            for(Item itemOder :mOrder.getItems()) {
+                                if(itemOder.getProductId() == mProductId) {
+                                    if(mQuantity == 0) {
+                                        item.setProductId(itemOder.getId());
+                                        mOrder.getItems().remove(itemOder);
+                                    } else {
+                                        itemOder.setQuantity(mQuantity);
+                                        itemOder.setTotal(String.valueOf(mQuantity * mPrice));
+                                        item = itemOder;
+                                    }
+                                    break;
+                                }
+                            }
+                            if(item.getProductId() < 0 && mQuantity > 0) {
+                                item.setName(mProductSelected.getTitle());
+                                item.setSku(mProductSelected.getSku());
+                                item.setPrice(mProductSelected.getPrice());
+                                item.setTotal(String.valueOf(mQuantity * mPrice));
+
+                                item.setProductId(mProductId);
+                                item.setQuantity(mQuantity);
+                                mOrder.getItems().add(item);
+                            }
+
+                            updateProduct();
+
+                            Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrder));
+                            finish();
+                        } else {
+                            Toast.makeText(getApplicationContext(), getString(R.string.error_add_quantity), Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        Toast.makeText(getApplicationContext(), getString(R.string.error_add_stock_quantity), Toast.LENGTH_LONG).show();
+                    }
+
+                }
+            });
+        }
     }
+
 }
