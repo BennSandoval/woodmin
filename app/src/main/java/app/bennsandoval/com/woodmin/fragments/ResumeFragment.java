@@ -231,7 +231,9 @@ public class ResumeFragment extends Fragment implements LoaderManager.LoaderCall
                                 total += Float.valueOf(order.getTotal());
                             }
 
-                            lastDateAnalyzed = simpleDateFormat.format(order.getCreatedAt());
+                            if(order.getCreatedAt() != null) {
+                                lastDateAnalyzed = simpleDateFormat.format(order.getCreatedAt());
+                            }
 
                         }
                     } while (cursor.moveToNext());
