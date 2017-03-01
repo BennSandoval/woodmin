@@ -28,10 +28,10 @@ import java.util.List;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.orders.Item;
-import app.bennsandoval.com.woodmin.models.orders.Order;
-import app.bennsandoval.com.woodmin.models.products.Product;
-import app.bennsandoval.com.woodmin.models.products.Variation;
+import app.bennsandoval.com.woodmin.models.v3.orders.Item;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.products.Product;
+import app.bennsandoval.com.woodmin.models.v3.products.Variation;
 
 public class OrderLinesShip extends AppCompatActivity {
 

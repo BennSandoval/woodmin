@@ -16,7 +16,7 @@ import com.squareup.picasso.Picasso;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.v3.products.Product;
 
 public class ProductAdapter extends CursorRecyclerViewAdapter<ProductAdapter.ViewHolder>  {
 

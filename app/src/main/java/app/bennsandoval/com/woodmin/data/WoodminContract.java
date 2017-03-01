@@ -31,11 +31,6 @@ public class WoodminContract {
         return sdf.format(date);
     }
 
-    public static Date getDateFromDbString(String dateText) throws ParseException {
-        SimpleDateFormat dbDateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
-        return dbDateFormat.parse(dateText);
-    }
-
     public static final class ShopEntry implements BaseColumns {
 
         public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_SHOP).build();

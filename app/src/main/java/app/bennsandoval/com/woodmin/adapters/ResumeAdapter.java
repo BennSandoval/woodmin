@@ -10,7 +10,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 import app.bennsandoval.com.woodmin.R;
-import app.bennsandoval.com.woodmin.models.Resume;
+import app.bennsandoval.com.woodmin.models.v3.Resume;
 
 public class ResumeAdapter extends ArrayAdapter<Resume> {
 

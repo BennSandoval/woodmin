@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import app.bennsandoval.com.woodmin.R;
-import app.bennsandoval.com.woodmin.models.orders.DrawerOption;
+import app.bennsandoval.com.woodmin.models.v3.orders.DrawerOption;
 
 public class DrawerAdapter extends ArrayAdapter<DrawerOption> {
 

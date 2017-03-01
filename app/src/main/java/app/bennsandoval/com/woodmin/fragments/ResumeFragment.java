@@ -36,10 +36,10 @@ import app.bennsandoval.com.woodmin.activities.MainActivity;
 import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.adapters.ResumeAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.DataResume;
-import app.bennsandoval.com.woodmin.models.Resume;
-import app.bennsandoval.com.woodmin.models.orders.Order;
-import app.bennsandoval.com.woodmin.models.products.Product;
+import app.bennsandoval.com.woodmin.models.v3.DataResume;
+import app.bennsandoval.com.woodmin.models.v3.Resume;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.products.Product;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 
 public class ResumeFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {

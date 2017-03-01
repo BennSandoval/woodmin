@@ -23,8 +23,8 @@ import java.text.SimpleDateFormat;
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.activities.OrderDetail;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.customers.Customer;
-import app.bennsandoval.com.woodmin.models.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.customers.Customer;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
 
 /**
  * Created by Mackbook on 1/10/15.

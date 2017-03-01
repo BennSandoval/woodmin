@@ -43,8 +43,8 @@ import app.bennsandoval.com.woodmin.activities.OrderNew;
 import app.bennsandoval.com.woodmin.activities.OrderDetail;
 import app.bennsandoval.com.woodmin.adapters.OrderAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.orders.Order;
-import app.bennsandoval.com.woodmin.models.orders.Orders;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.orders.Orders;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -268,6 +268,10 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                     Date today = new Date();
                     Calendar calendar = Calendar.getInstance();
                     calendar.setTime(today);
+                    calendar.add(Calendar.DAY_OF_MONTH, 1);
+                    today = calendar.getTime();
+
+                    calendar.setTime(today);
                     calendar.add(Calendar.MONTH, -1);
                     Date oneMonthsBack = calendar.getTime();
 
@@ -390,6 +394,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                                 ContentValues orderValues = new ContentValues();
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
+
                                 if(order.getCreatedAt() != null) {
                                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
                                 }
@@ -476,6 +481,7 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, gson.toJson(order));
                                 orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
                                 ordersValues.add(orderValues);
+                                Log.v(LOG_TAG,"Order ADDED " + order.getId());
 
                             }
 

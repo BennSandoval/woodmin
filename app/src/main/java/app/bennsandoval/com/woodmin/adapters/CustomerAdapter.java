@@ -15,7 +15,7 @@ import com.google.gson.GsonBuilder;
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.CustomerActions;
-import app.bennsandoval.com.woodmin.models.customers.Customer;
+import app.bennsandoval.com.woodmin.models.v3.customers.Customer;
 
 public class CustomerAdapter extends CursorRecyclerViewAdapter<CustomerAdapter.ViewHolder>  {
 

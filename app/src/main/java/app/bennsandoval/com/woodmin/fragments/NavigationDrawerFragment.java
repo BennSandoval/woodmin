@@ -32,7 +32,7 @@ import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.adapters.DrawerAdapter;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.NavigationDrawerCallbacks;
-import app.bennsandoval.com.woodmin.models.orders.DrawerOption;
+import app.bennsandoval.com.woodmin.models.v3.orders.DrawerOption;
 
 public class NavigationDrawerFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 

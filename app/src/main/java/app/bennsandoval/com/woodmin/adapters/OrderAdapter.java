@@ -3,7 +3,6 @@ package app.bennsandoval.com.woodmin.adapters;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,8 +17,8 @@ import java.util.Locale;
 
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.orders.Item;
-import app.bennsandoval.com.woodmin.models.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.orders.Item;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
 
 public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHolder>  {
 
@@ -103,7 +102,9 @@ public class OrderAdapter extends CursorRecyclerViewAdapter<OrderAdapter.ViewHol
                 itemsCount += item.getQuantity();
             }
             holder.txtItems.setText(mContext.getString(R.string.items, itemsCount));
-            holder.txtDate.setText(mFormat.format(order.getCreatedAt()));
+            if(order.getCreatedAt() != null) {
+                holder.txtDate.setText(mFormat.format(order.getCreatedAt()));
+            }
         }
     }
 

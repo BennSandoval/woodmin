@@ -5,13 +5,16 @@ import android.util.Base64;
 import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
+import app.bennsandoval.com.woodmin.models.v1.orders.DateDeserializer;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 import io.fabric.sdk.android.Fabric;
 import okhttp3.Interceptor;
@@ -85,11 +88,15 @@ public class Woodmin extends Application {
         //clientBuilder.addInterceptor(new SigningInterceptor(consumer));
         clientBuilder.addInterceptor(basicAuthenticatorInterceptor);
 
+        Gson gson = new GsonBuilder()
+            .registerTypeAdapter(Date.class, new DateDeserializer())
+            .create();
+
         String server = Utility.getPreferredServer(getApplicationContext());
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(server)
                 .client(clientBuilder.build())
-                .addConverterFactory(GsonConverterFactory.create(new GsonBuilder().create()))
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .build();
 
         return retrofit.create(Woocommerce.class);

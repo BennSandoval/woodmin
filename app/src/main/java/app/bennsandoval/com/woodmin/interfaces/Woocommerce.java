@@ -1,17 +1,20 @@
 package app.bennsandoval.com.woodmin.interfaces;
 
+import java.util.ArrayList;
 import java.util.Map;
 
-import app.bennsandoval.com.woodmin.models.customers.Customers;
-import app.bennsandoval.com.woodmin.models.orders.Count;
-import app.bennsandoval.com.woodmin.models.orders.Notes;
-import app.bennsandoval.com.woodmin.models.orders.OrderResponse;
-import app.bennsandoval.com.woodmin.models.orders.OrderUpdate;
-import app.bennsandoval.com.woodmin.models.orders.Orders;
-import app.bennsandoval.com.woodmin.models.products.Product;
-import app.bennsandoval.com.woodmin.models.products.ProductResponse;
-import app.bennsandoval.com.woodmin.models.products.Products;
-import app.bennsandoval.com.woodmin.models.shop.Shop;
+import app.bennsandoval.com.woodmin.models.v1.orders.Order;
+
+import app.bennsandoval.com.woodmin.models.v3.customers.Customers;
+import app.bennsandoval.com.woodmin.models.v3.orders.Count;
+import app.bennsandoval.com.woodmin.models.v1.orders.Coupon;
+import app.bennsandoval.com.woodmin.models.v3.orders.Notes;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderResponse;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderUpdate;
+import app.bennsandoval.com.woodmin.models.v3.orders.Orders;
+import app.bennsandoval.com.woodmin.models.v3.products.ProductResponse;
+import app.bennsandoval.com.woodmin.models.v3.products.Products;
+import app.bennsandoval.com.woodmin.models.v3.shop.Shop;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -60,12 +63,24 @@ public interface Woocommerce {
     Call<Customers> getCustomers(@QueryMap Map<String, String> options);
 
 
+
+
+    @GET("wp-json/wc/v1/coupons")
+    Call<ArrayList<Coupon>> getCoupons(@QueryMap Map<String, String> options);
+
+    @POST("wp-json/wc/v1/orders")
+    Call<Order> insertOrderV1(@Body Order order);
+
+    @GET("wp-json/wc/v1/orders")
+    Call<Order> getOrdersV1(@QueryMap Map<String, String> options);
+
+    @PUT("wp-json/wc/v1/orders/{orderId}")
+    Call<Order> updateOrderV1(@Path("orderId") String orderId,
+                              @Body app.bennsandoval.com.woodmin.models.v1.orders.OrderUpdate order);
+
     /*
     @GET("wp-json/wc/v1/orders/count")
     Call<Count> countOrders();
-
-    @GET("wp-json/wc/v1/wc-api/v3/orders")
-    Call<Orders> getOrders(@QueryMap Map<String, String> options);
 
     @GET("wp-json/wc/v1/wc-api/v3/orders/{orderId}/notes")
     Call<Notes> getOrdersNotes(@QueryMap Map<String, String> options,

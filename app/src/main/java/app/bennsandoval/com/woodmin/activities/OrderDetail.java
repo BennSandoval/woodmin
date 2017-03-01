@@ -39,16 +39,16 @@ import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
-import app.bennsandoval.com.woodmin.models.orders.Item;
-import app.bennsandoval.com.woodmin.models.orders.MetaItem;
-import app.bennsandoval.com.woodmin.models.orders.Note;
-import app.bennsandoval.com.woodmin.models.orders.Notes;
-import app.bennsandoval.com.woodmin.models.orders.Order;
-import app.bennsandoval.com.woodmin.models.orders.OrderResponse;
-import app.bennsandoval.com.woodmin.models.orders.OrderUpdate;
-import app.bennsandoval.com.woodmin.models.orders.OrderUpdateValues;
-import app.bennsandoval.com.woodmin.models.products.Product;
-import app.bennsandoval.com.woodmin.models.products.Variation;
+import app.bennsandoval.com.woodmin.models.v3.orders.Item;
+import app.bennsandoval.com.woodmin.models.v3.orders.MetaItem;
+import app.bennsandoval.com.woodmin.models.v3.orders.Note;
+import app.bennsandoval.com.woodmin.models.v3.orders.Notes;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderResponse;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderUpdate;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderUpdateValues;
+import app.bennsandoval.com.woodmin.models.v3.products.Product;
+import app.bennsandoval.com.woodmin.models.v3.products.Variation;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -142,20 +142,20 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 @Override
                 public void onClick(View view) {
 
-                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderDetail.this)
-                            .setTitle(getString(R.string.order, mOrderSelected.getOrderNumber()))
-                            .setMessage(getString(R.string.order_update_confirmation))
-                            .setCancelable(false)
-                            .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                    finalizeOrder();
-                                }
-                            })
-                            .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                }
-                            });
-                    alertDialogBuilder.create().show();
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderDetail.this)
+                    .setTitle(getString(R.string.order, mOrderSelected.getOrderNumber()))
+                    .setMessage(getString(R.string.order_update_confirmation))
+                    .setCancelable(false)
+                    .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            finalizeOrder();
+                        }
+                    })
+                    .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                        }
+                    });
+                alertDialogBuilder.create().show();
 
                 }
             });

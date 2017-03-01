@@ -1,5 +1,6 @@
 package app.bennsandoval.com.woodmin.activities;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -24,12 +25,12 @@ import java.util.ArrayList;
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
-import app.bennsandoval.com.woodmin.models.customers.BillingAddress;
-import app.bennsandoval.com.woodmin.models.orders.Item;
-import app.bennsandoval.com.woodmin.models.orders.Order;
-import app.bennsandoval.com.woodmin.models.products.Product;
-import app.bennsandoval.com.woodmin.models.products.ProductResponse;
-import app.bennsandoval.com.woodmin.models.products.Variation;
+import app.bennsandoval.com.woodmin.models.v3.customers.BillingAddress;
+import app.bennsandoval.com.woodmin.models.v3.orders.Item;
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.products.Product;
+import app.bennsandoval.com.woodmin.models.v3.products.ProductResponse;
+import app.bennsandoval.com.woodmin.models.v3.products.Variation;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -46,6 +47,7 @@ public class OrderAddProduct extends AppCompatActivity {
     private Product mProductSelected;
     private Order mOrder;
     private Gson mGson = new GsonBuilder().create();
+    private ProgressDialog mProgress;
 
     private static final String[] PRODUCT_PROJECTION = {
             WoodminContract.ProductEntry.COLUMN_ID,
@@ -57,6 +59,8 @@ public class OrderAddProduct extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_order_add_product);
+        mProgress = new ProgressDialog(OrderAddProduct.this);
+        mProgress.setTitle(getString(R.string.app_name));
 
         if(mProductId < 0 ) {
             mProductId = getIntent().getIntExtra("product", -1);
@@ -84,6 +88,25 @@ public class OrderAddProduct extends AppCompatActivity {
         String json = Utility.getPreferredShoppingCard(getApplicationContext());
         if(json != null) {
             mOrder = mGson.fromJson(json, Order.class);
+            if(mOrder.getBillingAddress() == null) {
+
+                BillingAddress billingAddress = new BillingAddress();
+                billingAddress.setCompany(getString(R.string.default_company));
+                billingAddress.setFirstName(getString(R.string.default_first_name));
+                billingAddress.setLastName(getString(R.string.default_last_name));
+                billingAddress.setAddressOne(getString(R.string.default_line_one));
+                billingAddress.setAddressTwo(getString(R.string.default_line_two));
+                billingAddress.setCity(getString(R.string.default_city));
+                billingAddress.setState(getString(R.string.default_state));
+                billingAddress.setPostcode(getString(R.string.default_postal_code));
+                billingAddress.setCountry(getString(R.string.default_country));
+                billingAddress.setEmail(getString(R.string.default_email));
+                billingAddress.setPhone(getString(R.string.default_phone));
+
+                mOrder.setBillingAddress(billingAddress);
+
+                Utility.setPreferredShoppingCard(getApplicationContext(), mGson.toJson(mOrder));
+            }
         } else {
             mOrder = new Order();
 
@@ -191,11 +214,24 @@ public class OrderAddProduct extends AppCompatActivity {
     private void getProduct() {
         if(mProductSelected != null) {
             Log.v(LOG_TAG, "Get product " +  mProductSelected.getId());
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mProgress.setMessage(getString(R.string.validating));
+                    mProgress.show();
+                }
+            });
 
             Call<ProductResponse> call = ((Woodmin)getApplication()).getWoocommerceApiHandler().getProduct(mProductSelected.getId());
             call.enqueue(new Callback<ProductResponse>() {
                 @Override
                 public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mProgress.dismiss();
+                        }
+                    });
                     int statusCode = response.code();
                     if (statusCode == 200) {
                         if(response.body().getProduct() != null) {
@@ -254,6 +290,12 @@ public class OrderAddProduct extends AppCompatActivity {
                 public void onFailure(Call<ProductResponse> call, Throwable t) {
                     Log.v(LOG_TAG, "Get product " +  mProductSelected.getId() + " onFailure " + " error " + t.getMessage());
                     fillView(false);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mProgress.dismiss();
+                        }
+                    });
                 }
             });
         }
@@ -390,7 +432,7 @@ public class OrderAddProduct extends AppCompatActivity {
                                     break;
                                 }
                             }
-                            if(item.getProductId() < 0 && mQuantity > 0) {
+                            if(item.getProductId() == null && mQuantity > 0) {
                                 item.setName(mProductSelected.getTitle());
                                 item.setSku(mProductSelected.getSku());
                                 item.setPrice(mProductSelected.getPrice());

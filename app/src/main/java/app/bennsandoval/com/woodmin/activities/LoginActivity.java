@@ -20,7 +20,7 @@ import android.widget.TextView;
 import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
-import app.bennsandoval.com.woodmin.models.shop.Shop;
+import app.bennsandoval.com.woodmin.models.v3.shop.Shop;
 import app.bennsandoval.com.woodmin.sync.WoodminSyncAdapter;
 import app.bennsandoval.com.woodmin.utilities.Utility;
 import retrofit2.Call;
