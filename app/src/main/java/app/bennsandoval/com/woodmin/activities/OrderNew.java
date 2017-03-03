@@ -26,8 +26,6 @@ import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -35,17 +33,23 @@ import app.bennsandoval.com.woodmin.R;
 import app.bennsandoval.com.woodmin.Woodmin;
 import app.bennsandoval.com.woodmin.data.WoodminContract;
 import app.bennsandoval.com.woodmin.interfaces.Woocommerce;
-import app.bennsandoval.com.woodmin.models.v1.orders.OrderUpdate;
-import app.bennsandoval.com.woodmin.models.v3.customers.BillingAddress;
-import app.bennsandoval.com.woodmin.models.v3.customers.ShippingAddress;
+
 import app.bennsandoval.com.woodmin.models.v1.orders.Coupon;
 import app.bennsandoval.com.woodmin.models.v1.orders.CouponLine;
+
+import app.bennsandoval.com.woodmin.models.v3.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.customers.BillingAddress;
+import app.bennsandoval.com.woodmin.models.v3.customers.ShippingAddress;
 import app.bennsandoval.com.woodmin.models.v3.orders.Item;
 import app.bennsandoval.com.woodmin.models.v3.orders.MetaItem;
-import app.bennsandoval.com.woodmin.models.v1.orders.Order;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderResponse;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderUpdate;
+import app.bennsandoval.com.woodmin.models.v3.orders.OrderUpdateValues;
+import app.bennsandoval.com.woodmin.models.v3.orders.PaymentDetails;
 import app.bennsandoval.com.woodmin.models.v3.orders.ShippingLine;
 import app.bennsandoval.com.woodmin.models.v3.products.Product;
 import app.bennsandoval.com.woodmin.models.v3.products.Variation;
+
 import app.bennsandoval.com.woodmin.utilities.Utility;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -150,7 +154,7 @@ public class OrderNew extends AppCompatActivity {
 
                                     Float subtotal = 0.0f;
                                     Float shipping = 0.0f;
-                                    for(Item itemInOrder: mOrder.getLineItems()) {
+                                    for(Item itemInOrder: mOrder.getItems()) {
                                         subtotal += Float.valueOf(itemInOrder.getTotal());
                                     }
                                     final Float total = subtotal + shipping;
@@ -221,7 +225,7 @@ public class OrderNew extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
 
-                    if (mOrder.getLineItems().size() > 0) {
+                    if (mOrder.getItems().size() > 0) {
                         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(OrderNew.this)
                                 .setTitle(getString(R.string.new_order_title))
                                 .setMessage(getString(R.string.order_create_confirmation))
@@ -255,8 +259,14 @@ public class OrderNew extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if(mSaveIncomplete) {
-            mOrder.setPaymentMethod(getString(R.string.default_payment_code));
-            mOrder.setPaymentMethodTitle(getString(R.string.default_payment));
+            PaymentDetails paymentDetails = new PaymentDetails();
+            paymentDetails.setMethodId(getString(R.string.default_payment_code));
+            paymentDetails.setMethodTitle(getString(R.string.default_payment));
+            paymentDetails.setPaid(true);
+            mOrder.setPaymentDetails(paymentDetails);
+
+            //mOrder.setPaymentMethod(getString(R.string.default_payment_code));
+            //mOrder.setPaymentMethodTitle(getString(R.string.default_payment));
 
             ShippingLine shippingLine = new ShippingLine();
             shippingLine.setMethodId(getString(R.string.default_shipping_method_id));
@@ -347,7 +357,7 @@ public class OrderNew extends AppCompatActivity {
         }
 
         Button clear = (Button) findViewById(R.id.clear);
-        if (mOrder.getLineItems().size() == 0) {
+        if (mOrder.getItems().size() == 0) {
             clear.setVisibility(View.GONE);
         }
         clear.setOnClickListener(new View.OnClickListener() {
@@ -384,7 +394,7 @@ public class OrderNew extends AppCompatActivity {
         List<String> ids = new ArrayList<>();
         List<String> parameters = new ArrayList<>();
 
-        for (Item item : mOrder.getLineItems()) {
+        for (Item item : mOrder.getItems()) {
             ids.add(String.valueOf(item.getProductId()));
             parameters.add("?");
         }
@@ -410,7 +420,7 @@ public class OrderNew extends AppCompatActivity {
             cursor.close();
         }
 
-        for (final Item item : mOrder.getLineItems()) {
+        for (final Item item : mOrder.getItems()) {
 
             if(item.getTotal() == null){
                 item.setTotal("0");
@@ -502,7 +512,7 @@ public class OrderNew extends AppCompatActivity {
                         intent.putExtra("product", product.getId());
                         startActivity(intent);
                     } else {
-                        mOrder.getLineItems().remove(item);
+                        mOrder.getItems().remove(item);
                         String json = mGson.toJson(mOrder);
                         Utility.setPreferredShoppingCard(getApplicationContext(), json);
                         refreshView();
@@ -526,7 +536,7 @@ public class OrderNew extends AppCompatActivity {
         List<String> ids = new ArrayList<>();
         List<String> parameters = new ArrayList<>();
 
-        for (Item item : mOrder.getLineItems()) {
+        for (Item item : mOrder.getItems()) {
             ids.add(String.valueOf(item.getProductId()));
             parameters.add("?");
         }
@@ -554,7 +564,7 @@ public class OrderNew extends AppCompatActivity {
 
         ArrayList<ContentValues> productsValues = new ArrayList<ContentValues>();
 
-        for (Item item : mOrder.getLineItems()) {
+        for (Item item : mOrder.getItems()) {
             for (Product product : products) {
 
                 int stockRestore = product.getStockQuantity() + item.getQuantity();
@@ -617,11 +627,14 @@ public class OrderNew extends AppCompatActivity {
         mProgress.setMessage(getString(R.string.create_order));
         mProgress.show();
 
+        mOrder.setTotalLineItemsQuantity(-1);
         //mOrder.setStatus("completed");
 
-        mOrder.setPaymentMethod(getString(R.string.default_payment_code));
-        mOrder.setPaymentMethodTitle(getString(R.string.default_payment));
-        mOrder.setSetPaid(true);
+        PaymentDetails paymentDetails = new PaymentDetails();
+        paymentDetails.setMethodId(getString(R.string.default_payment_code));
+        paymentDetails.setMethodTitle(getString(R.string.default_payment));
+        paymentDetails.setPaid(true);
+        mOrder.setPaymentDetails(paymentDetails);
 
         ShippingLine shippingLine = new ShippingLine();
         shippingLine.setMethodId(getString(R.string.default_shipping_method_id));
@@ -656,7 +669,7 @@ public class OrderNew extends AppCompatActivity {
         shippingAddress.setCountry(mBillingAddressCountry.getText().toString());
         mOrder.setShippingAddress(shippingAddress);
 
-        for (Item item : mOrder.getLineItems()) {
+        for (Item item : mOrder.getItems()) {
             if(mDiscount >0) {
                 float totalItem = Float.valueOf(item.getTotal());
                 float discountItem = totalItem * mDiscount/100;
@@ -668,56 +681,51 @@ public class OrderNew extends AppCompatActivity {
         String json = mGson.toJson(mOrder);
         Log.i(LOG_TAG, json);
 
+        OrderResponse orderCreate = new OrderResponse();
+        orderCreate.setOrder(mOrder);
 
         Woocommerce woocommerceApi = ((Woodmin) getApplication()).getWoocommerceApiHandler();
-        Call<Order> call = woocommerceApi.insertOrderV1(mOrder);
-        call.enqueue(new Callback<Order>() {
+        Call<OrderResponse> call = woocommerceApi.insertOrder(orderCreate);
+        call.enqueue(new Callback<OrderResponse>() {
             @Override
-            public void onResponse(Call<Order> call, Response<Order> response) {
+            public void onResponse(Call<OrderResponse> call, Response<OrderResponse> response) {
                 int statusCode = response.code();
                 if (statusCode == 201) {
-                    Order order = response.body();
+                    Order order = response.body().getOrder();
 
                     String json = mGson.toJson(order);
                     Log.i(LOG_TAG, json);
 
                     ContentValues orderValues = new ContentValues();
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getNumber());
-                    if (order.getDateCreated() != null) {
-                        Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(order.getDateCreated());
-                        calendar.add(Calendar.HOUR, -6);
-                        order.setDateCreated(calendar.getTime());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getDateCreated()));
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
+                    if (order.getCreatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
                     }
-                    if (order.getDateModified() != null) {
-                        Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(order.getDateModified());
-                        calendar.add(Calendar.HOUR, -6);
-                        order.setDateModified(calendar.getTime());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getDateModified()));
+                    if (order.getUpdatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
                     }
-                    if (order.getDateCompleted() != null) {
-                        Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(order.getDateCompleted());
-                        calendar.add(Calendar.HOUR, -6);
-                        order.setDateCompleted(calendar.getTime());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getDateCompleted()));
+                    if (order.getCompletedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getLineItems().size());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SUBTOTAL, order.getSubtotal());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getTotalLineItemsQuantity());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_TAX, order.getTotalTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getShippingTotal());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getTotalShipping());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_TAX, order.getCartTax());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_TAX, order.getShippingTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getDiscountTotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingLines().get(0).getMethodTitle());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentMethod());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentMethodTitle());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, "1");
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getTotalDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_DISCOUNT, order.getCartDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_DISCOUNT, order.getOrderDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingMethods());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_NOTE, order.getNote());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_VIEW_ORDER_URL, order.getViewOrderUrl());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentDetails().getMethodId());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
@@ -729,43 +737,50 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COUNTRY, order.getBillingAddress().getCountry());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_EMAIL, order.getBillingAddress().getEmail());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_PHONE, order.getBillingAddress().getPhone());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID, order.getCustomerId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getBillingAddress().getEmail());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getBillingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getBillingAddress().getLastName());
-                    if (order.getBillingAddress() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
-
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getBillingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getBillingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getBillingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getBillingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getBillingAddress().getCountry());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getBillingAddress().getEmail());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getBillingAddress().getPhone());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getCustomer().getEmail());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getCustomer().getFirstName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
+                    if (order.getCustomer().getLastOrderDate() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
                     }
-                    if (order.getShippingAddress() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getShippingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getShippingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
+                    if (order.getCustomer().getBillingAddress() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getCustomer().getBillingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getCustomer().getBillingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getCustomer().getBillingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getCustomer().getBillingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getCustomer().getBillingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getCustomer().getBillingAddress().getCountry());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
+                    }
+                    if (order.getCustomer().getShippingAddress() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getCustomer().getShippingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getCustomer().getShippingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getCustomer().getShippingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, mGson.toJson(order));
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
@@ -789,7 +804,7 @@ public class OrderNew extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<Order> call, Throwable t) {
+            public void onFailure(Call<OrderResponse> call, Throwable t) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -812,14 +827,16 @@ public class OrderNew extends AppCompatActivity {
         });
 
         OrderUpdate orderUpdate = new OrderUpdate();
-        orderUpdate.setStatus("completed");
+        OrderUpdateValues orderUpdateValues = new OrderUpdateValues();
+        orderUpdateValues.setStatus("completed");
+        orderUpdate.setOrder(orderUpdateValues);
 
         Woocommerce woocommerceApi = ((Woodmin) getApplication()).getWoocommerceApiHandler();
-        Call<Order> call = woocommerceApi.updateOrderV1(String.valueOf(order.getNumber()), orderUpdate);
-        call.enqueue(new Callback<Order>() {
+        Call<OrderResponse> call = woocommerceApi.updateOrder(order.getOrderNumber(), orderUpdate);
+        call.enqueue(new Callback<OrderResponse>() {
 
             @Override
-            public void onResponse(final Call<Order> call, final Response<Order> response) {
+            public void onResponse(final Call<OrderResponse> call, final Response<OrderResponse> response) {
 
                 runOnUiThread(new Runnable() {
                     @Override
@@ -830,35 +847,37 @@ public class OrderNew extends AppCompatActivity {
 
                 int statusCode = response.code();
                 if (statusCode == 200) {
-                    Order order = response.body();
-                    String json = mGson.toJson(order);
-                    Log.i(LOG_TAG, json);
-                    /*
+                    Order order = response.body().getOrder();
                     ContentValues orderValues = new ContentValues();
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ID, order.getId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getNumber());
-                    if (order.getDateCreated() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getDateCreated()));
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_NUMBER, order.getOrderNumber());
+                    if (order.getCreatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CREATED_AT, WoodminContract.getDbDateString(order.getCreatedAt()));
                     }
-                    if (order.getDateModified() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getDateModified()));
+                    if (order.getUpdatedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_UPDATED_AT, WoodminContract.getDbDateString(order.getUpdatedAt()));
                     }
-                    if (order.getDateCompleted() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getDateCompleted()));
+                    if (order.getCompletedAt() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_COMPLETED_AT, WoodminContract.getDbDateString(order.getCompletedAt()));
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_STATUS, order.getStatus());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CURRENCY, order.getCurrency());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL, order.getTotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getLineItems().size());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SUBTOTAL, order.getSubtotal());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_LINE_ITEMS_QUANTITY, order.getTotalLineItemsQuantity());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_TAX, order.getTotalTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getShippingTotal());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_SHIPPING, order.getTotalShipping());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_TAX, order.getCartTax());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_TAX, order.getShippingTax());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getDiscountTotal());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingLines().get(0).getMethodTitle());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentMethod());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentMethodTitle());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, "1");
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_TOTAL_DISCOUNT, order.getTotalDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CART_DISCOUNT, order.getCartDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_ORDER_DISCOUNT, order.getOrderDiscount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_METHODS, order.getShippingMethods());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_NOTE, order.getNote());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_VIEW_ORDER_URL, order.getViewOrderUrl());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_ID, order.getPaymentDetails().getMethodId());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_METHOD_TITLE, order.getPaymentDetails().getMethodTitle());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_PAYMENT_DETAILS_PAID, order.getPaymentDetails().isPaid() ? "1" : "0");
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COMPANY, order.getBillingAddress().getCompany());
@@ -870,43 +889,50 @@ public class OrderNew extends AppCompatActivity {
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_COUNTRY, order.getBillingAddress().getCountry());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_EMAIL, order.getBillingAddress().getEmail());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_BILLING_PHONE, order.getBillingAddress().getPhone());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ID, order.getCustomerId());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getBillingAddress().getEmail());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getBillingAddress().getFirstName());
-                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getBillingAddress().getLastName());
-                    if (order.getBillingAddress() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_CITY, order.getShippingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_STATE, order.getShippingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
-
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getBillingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getBillingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getBillingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getBillingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getBillingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getBillingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getBillingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getBillingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getBillingAddress().getCountry());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getBillingAddress().getEmail());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getBillingAddress().getPhone());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_EMAIL, order.getCustomer().getEmail());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_FIRST_NAME, order.getCustomer().getFirstName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_NAME, order.getCustomer().getLastName());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_USERNAME, order.getCustomer().getUsername());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_ID, order.getCustomer().getLastOrderId());
+                    if (order.getCustomer().getLastOrderDate() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_LAST_ORDER_DATE, WoodminContract.getDbDateString(order.getCustomer().getLastOrderDate()));
                     }
-                    if (order.getShippingAddress() != null) {
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getShippingAddress().getFirstName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getShippingAddress().getLastName());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getShippingAddress().getCompany());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getShippingAddress().getAddressOne());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getShippingAddress().getAddressTwo());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getShippingAddress().getCity());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getShippingAddress().getState());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getShippingAddress().getPostcode());
-                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getShippingAddress().getCountry());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_ORDERS_COUNT, order.getCustomer().getOrdersCount());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_TOTAL_SPEND, order.getCustomer().getTotalSpent());
+                    orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_AVATAR_URL, order.getCustomer().getAvatarUrl());
+                    if (order.getCustomer().getBillingAddress() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_FIRST_NAME, order.getCustomer().getBillingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_LAST_NAME, order.getCustomer().getBillingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COMPANY, order.getCustomer().getBillingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_1, order.getCustomer().getBillingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_ADDRESS_2, order.getCustomer().getBillingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_CITY, order.getCustomer().getBillingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_STATE, order.getCustomer().getBillingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_POSTCODE, order.getCustomer().getBillingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_COUNTRY, order.getCustomer().getBillingAddress().getCountry());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_EMAIL, order.getCustomer().getBillingAddress().getEmail());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_BILLING_PHONE, order.getCustomer().getBillingAddress().getPhone());
+                    }
+                    if (order.getCustomer().getShippingAddress() != null) {
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_FIRST_NAME, order.getCustomer().getShippingAddress().getFirstName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_LAST_NAME, order.getCustomer().getShippingAddress().getLastName());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COMPANY, order.getCustomer().getShippingAddress().getCompany());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_1, order.getCustomer().getShippingAddress().getAddressOne());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_ADDRESS_2, order.getCustomer().getShippingAddress().getAddressTwo());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_CITY, order.getCustomer().getShippingAddress().getCity());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_STATE, order.getCustomer().getShippingAddress().getState());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_POSTCODE, order.getCustomer().getShippingAddress().getPostcode());
+                        orderValues.put(WoodminContract.OrdersEntry.COLUMN_CUSTOMER_SHIPPING_COUNTRY, order.getCustomer().getShippingAddress().getCountry());
                     }
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_JSON, mGson.toJson(order));
                     orderValues.put(WoodminContract.OrdersEntry.COLUMN_ENABLE, 1);
@@ -914,7 +940,6 @@ public class OrderNew extends AppCompatActivity {
                     Uri insertedOrderUri = getContentResolver().insert(WoodminContract.OrdersEntry.CONTENT_URI, orderValues);
                     long orderId = ContentUris.parseId(insertedOrderUri);
                     Log.d(LOG_TAG, "Orders successful updated ID: " + orderId);
-                    */
 
                     Utility.setPreferredShoppingCard(getApplicationContext(), null);
                     mSaveIncomplete = false;
@@ -934,7 +959,7 @@ public class OrderNew extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<Order> call, Throwable t) {
+            public void onFailure(Call<OrderResponse> call, Throwable t) {
                 Log.e(LOG_TAG, "onFailure ");
                 runOnUiThread(new Runnable() {
                     @Override
