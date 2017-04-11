@@ -341,6 +341,7 @@ public class OrderDetail extends AppCompatActivity implements LoaderManager.Load
                 cart.removeViewAt(1);
             }
             LinearLayout cardDetails = (LinearLayout)findViewById(R.id.shopping_card_details);
+            cardDetails.removeAllViews();
 
             List<String> ids = new ArrayList<>();
             List<String> parameters = new ArrayList<>();

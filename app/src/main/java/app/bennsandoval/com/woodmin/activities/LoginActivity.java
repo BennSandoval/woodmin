@@ -97,11 +97,12 @@ public class LoginActivity extends AppCompatActivity {
             mServerView.setError(getString(R.string.error_field_length));
             focusView = mServerView;
             cancel = true;
-        } else if (!server.contains("https")){
+        }
+        /*else if (!server.contains("https")){
             mServerView.setError(getString(R.string.error_server_https));
             focusView = mServerView;
             cancel = true;
-        }
+        }*/
 
         // Check for a valid user address.
         if (TextUtils.isEmpty(user) && !isValid(user)) {

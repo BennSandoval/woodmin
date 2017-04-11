@@ -497,6 +497,10 @@ public class OrdersFragment extends Fragment implements LoaderManager.LoaderCall
                     if(orders.size() == mSize) {
                         //getPageOrders();
                     }
+                } else {
+                    if(mSwipeLayout != null){
+                        mSwipeLayout.setRefreshing(false);
+                    }
                 }
                 mPage++;
             }

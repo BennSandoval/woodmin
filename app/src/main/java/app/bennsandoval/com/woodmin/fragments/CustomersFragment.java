@@ -69,7 +69,7 @@ public class CustomersFragment extends Fragment implements
     };
 
     private String mQuery;
-    private int mPage = 0;
+    private int mPage = 1;
     private int mSize = 50;
 
     public static CustomersFragment newInstance(int sectionNumber) {
@@ -350,7 +350,7 @@ public class CustomersFragment extends Fragment implements
             }
         }, 2000);
 
-        Log.v(LOG_TAG,"Orders Read Total:" + mAdapter.getItemCount() + " Page : " + mPage);
+        Log.v(LOG_TAG,"Customers Read Total:" + mAdapter.getItemCount() + " Page : " + mPage);
 
         HashMap<String, String> options = new HashMap<>();
         options.put("filter[limit]", String.valueOf(mSize));
@@ -410,6 +410,10 @@ public class CustomersFragment extends Fragment implements
                     }).start();
                     if(customers.size() == mSize) {
                         //getPageCustomers();
+                    }
+                } else {
+                    if(mSwipeLayout != null){
+                        mSwipeLayout.setRefreshing(false);
                     }
                 }
                 mPage++;

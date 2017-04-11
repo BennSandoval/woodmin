@@ -29,7 +29,6 @@ public interface Woocommerce {
     @GET("wc-api/v3/")
     Call<Shop> getShop();
 
-
     @GET("wc-api/v3/orders/count")
     Call<Count> countOrders();
 

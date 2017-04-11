@@ -67,7 +67,7 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
     private String mQuery;
     private int mPage = 0;
     private int mSize = 50;
-    private boolean mLoading = true;
+    private boolean mLoading = false;
 
     public static ProductsFragment newInstance(int sectionNumber) {
         ProductsFragment fragment = new ProductsFragment();
@@ -394,6 +394,11 @@ public class ProductsFragment extends Fragment implements LoaderManager.LoaderCa
                         if(mSwipeLayout != null){
                             mSwipeLayout.setRefreshing(mLoading);
                         }
+                    }
+                } else {
+                    mLoading = false;
+                    if(mSwipeLayout != null){
+                        mSwipeLayout.setRefreshing(mLoading);
                     }
                 }
                 mPage++;

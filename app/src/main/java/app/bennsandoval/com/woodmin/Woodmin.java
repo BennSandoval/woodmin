@@ -48,6 +48,7 @@ public class Woodmin extends Application {
 
     public Woocommerce getWoocommerceApiHandler() {
 
+        String server = Utility.getPreferredServer(getApplicationContext());
         final String key = Utility.getPreferredUser(getApplicationContext());
         final String secret = Utility.getPreferredSecret(getApplicationContext());
 
@@ -57,13 +58,13 @@ public class Woodmin extends Application {
                 .cache(null);
 
         //TODO Remove this if you don't have a self cert
-        /*
-        if(Utility.getSSLSocketFactory() != null){
-            clientBuilder
+        if(!server.contains("https")) {
+            if(Utility.getSSLSocketFactory() != null){
+                clientBuilder
                     .sslSocketFactory(Utility.getSSLSocketFactory())
                     .hostnameVerifier(Utility.getHostnameVerifier());
+            }
         }
-        */
 
         Interceptor basicAuthenticatorInterceptor = new Interceptor() {
             @Override
@@ -92,7 +93,6 @@ public class Woodmin extends Application {
             .registerTypeAdapter(Date.class, new DateDeserializer())
             .create();
 
-        String server = Utility.getPreferredServer(getApplicationContext());
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(server)
                 .client(clientBuilder.build())

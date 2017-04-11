@@ -98,6 +98,7 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Override
     public void onPerformSync(Account account, Bundle bundle, String s, ContentProviderClient contentProviderClient, SyncResult syncResult) {
+        String server = Utility.getPreferredServer(getContext());
         Log.d(LOG_TAG, "Starting sync");
         Long lastSyncTimeStamp =  Utility.getPreferredLastSync(getContext());
         Log.d(LOG_TAG, "Last sync " + lastSyncTimeStamp);
@@ -114,13 +115,13 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
                 .cache(null);
 
         //TODO Remove this if you don't have a self cert
-        /*
-        if(Utility.getSSLSocketFactory() != null){
-            clientBuilder
-                    .sslSocketFactory(Utility.getSSLSocketFactory())
-                    .hostnameVerifier(Utility.getHostnameVerifier());
+        if(!server.contains("https")) {
+            if(Utility.getSSLSocketFactory() != null){
+                clientBuilder
+                        .sslSocketFactory(Utility.getSSLSocketFactory())
+                        .hostnameVerifier(Utility.getHostnameVerifier());
+            }
         }
-        */
 
         Interceptor basicAuthenticatorInterceptor = new Interceptor() {
             @Override
@@ -140,7 +141,6 @@ public class WoodminSyncAdapter extends AbstractThreadedSyncAdapter {
         //clientBuilder.addInterceptor(new SigningInterceptor(consumer));
         clientBuilder.addInterceptor(basicAuthenticatorInterceptor);
 
-        String server = Utility.getPreferredServer(getContext());
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(server)
                 .client(clientBuilder.build())
